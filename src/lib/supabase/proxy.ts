@@ -1,17 +1,29 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+import { ACCUEIL_PAR_ROLE, lireRole, type Role } from "@/lib/roles"
+
 import type { Database } from "./database.types"
 
 // Pages accessibles sans être connecté
 const CHEMINS_PUBLICS = ["/connexion", "/p/"]
 
+// Espaces réservés à un rôle
+const ESPACES: Record<Role, string> = {
+  greffe: "/greffe",
+  mediateur: "/mediateur",
+}
+
 function estPublic(chemin: string) {
   return CHEMINS_PUBLICS.some((prefixe) => chemin.startsWith(prefixe))
 }
 
-// Rafraîchit la session Supabase à chaque requête et protège l'espace
-// greffe / médiateur.
+function estDansEspace(chemin: string, espace: string) {
+  return chemin === espace || chemin.startsWith(`${espace}/`)
+}
+
+// Rafraîchit la session Supabase à chaque requête et oriente chaque compte
+// vers son espace (greffe ou médiateur).
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
 
@@ -43,19 +55,29 @@ export async function updateSession(request: NextRequest) {
   // c'est cet appel qui rafraîchit le jeton si besoin.
   const { data } = await supabase.auth.getClaims()
   const connecte = Boolean(data?.claims)
+  const role = lireRole(data?.claims)
   const chemin = request.nextUrl.pathname
 
-  if (!connecte && !estPublic(chemin)) {
+  const rediriger = (vers: string) => {
     const url = request.nextUrl.clone()
-    url.pathname = "/connexion"
+    url.pathname = vers
+    url.search = ""
     return NextResponse.redirect(url)
   }
 
-  if (connecte && chemin === "/connexion") {
-    const url = request.nextUrl.clone()
-    url.pathname = "/tableau-de-bord"
-    return NextResponse.redirect(url)
+  if (estPublic(chemin)) {
+    // Un compte connecté avec un rôle n'a rien à faire sur /connexion
+    if (role && chemin === "/connexion") return rediriger(ACCUEIL_PAR_ROLE[role])
+    return response
   }
+
+  if (!connecte || !role) return rediriger("/connexion")
+
+  // Chaque rôle reste dans son espace
+  const autreEspace = Object.entries(ESPACES).some(
+    ([roleEspace, espace]) => roleEspace !== role && estDansEspace(chemin, espace)
+  )
+  if (chemin === "/" || autreEspace) return rediriger(ACCUEIL_PAR_ROLE[role])
 
   return response
 }

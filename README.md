@@ -52,8 +52,8 @@ Ouvrir http://localhost:3000.
 
 Comptes de connexion (mot de passe : `motdepasse`) :
 
-- `greffe@exemple.fr`
-- `mediateur@exemple.fr`
+- `greffe@exemple.fr` → espace greffe, `/greffe`
+- `mediateur@exemple.fr` → espace médiateur, `/mediateur`
 
 Le seed crée un médiateur, 10 créneaux sur les 7 prochains jours ouvrés et
 3 dossiers fictifs :
@@ -101,4 +101,23 @@ npx supabase db push
 ```
 
 Ne pas exécuter `seed.sql` en production. Créer les comptes du greffe et des
-médiateurs depuis le Studio (Authentication → Users).
+médiateurs depuis le Studio (Authentication → Users), puis leur attribuer un
+rôle dans l'éditeur SQL :
+
+```sql
+-- Compte greffe
+update auth.users
+set raw_app_meta_data = raw_app_meta_data || '{"role": "greffe"}'
+where email = 'greffe@exemple.fr';
+
+-- Compte médiateur, relié à sa ligne dans la table mediateurs
+update auth.users
+set raw_app_meta_data = raw_app_meta_data || jsonb_build_object(
+  'role', 'mediateur',
+  'mediateur_id', (select id from public.mediateurs where email = 'mediateur@exemple.fr')
+)
+where email = 'mediateur@exemple.fr';
+```
+
+Le rôle est lu dans le jeton de connexion : l'utilisateur doit se reconnecter
+pour qu'un changement soit pris en compte.

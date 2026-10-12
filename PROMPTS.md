@@ -91,7 +91,7 @@ Ne modifie aucun fichier.
 ## Prompt 2 — Espace greffe (Personne 2)
 
 ```
-Lis CLAUDE.md et les migrations. Je suis la personne 2 : je travaille uniquement dans app/greffe (et je peux ajouter des composants shadcn).
+Lis CLAUDE.md et les migrations. Je suis la personne 2 : je travaille uniquement dans src/app/greffe (et je peux ajouter des composants shadcn).
 
 Crée l'espace greffe, accessible après connexion, sur /greffe :
 - Une liste des dossiers (numéro RG, juridiction, médiateur, statut affiché avec un badge coloré : gris en_attente, orange partiellement_joignable, bleu joignable, vert rdv_fixe).
@@ -106,7 +106,7 @@ Teste le parcours complet puis lance npm run build.
 ## Prompt 3 — Parcours de la partie (Personne 3)
 
 ```
-Lis CLAUDE.md et les migrations. Je suis la personne 3 : je travaille uniquement dans app/p/[token], SAUF le sous-dossier app/p/[token]/avocat qui appartient à la personne 6.
+Lis CLAUDE.md et les migrations. Je suis la personne 3 : je travaille uniquement dans src/app/p/[token], SAUF le sous-dossier src/app/p/[token]/avocat qui appartient à la personne 6.
 
 Crée la page publique /p/[token], sans connexion, mobile-first, en français très simple, avec de grands boutons. Public visé : des personnes pas forcément à l'aise avec le numérique.
 
@@ -116,7 +116,7 @@ Parcours en 4 étapes avec une barre de progression :
 3. Consentement : texte court expliquant que les coordonnées seront transmises uniquement au médiateur désigné pour organiser la médiation. Case à cocher obligatoire.
 4. Disponibilités : afficher les créneaux du médiateur groupés par jour, sélection multiple.
 
-À la validation (server action avec la clé service_role) : enregistrer les données, rempli_par = partie, confirme_le = maintenant, enregistrer les disponibilités, puis appeler la fonction partagée de recalcul du statut décrite dans CLAUDE.md. Ne duplique pas cette logique.
+À la validation (server action avec la clé service_role) : enregistrer les données, rempli_par = partie, confirme_le = maintenant, enregistrer les disponibilités, puis relire le dossier avec la fonction partagée décrite dans CLAUDE.md (le statut est recalculé automatiquement par la base : n'appelle aucune fonction de recalcul). Ne duplique pas cette logique.
 
 Écran final : confirmation avec récapitulatif. Si le rendez-vous est fixé, afficher la date. Sinon : "Le médiateur vous contactera prochainement."
 Si le token est invalide ou si la partie a déjà confirmé (par elle-même ou par son avocat), afficher un message adapté.
@@ -128,7 +128,7 @@ Teste sur une largeur de 375 px puis lance npm run build.
 ## Prompt 4 — Tableau de bord du médiateur (Personne 4)
 
 ```
-Lis CLAUDE.md et les migrations. Je suis la personne 4 : je travaille uniquement dans app/mediateur.
+Lis CLAUDE.md et les migrations. Je suis la personne 4 : je travaille uniquement dans src/app/mediateur.
 
 Crée le tableau de bord du médiateur sur /mediateur, accessible après connexion :
 - En haut, 4 indicateurs : dossiers en attente, partiellement joignables, joignables, rendez-vous fixés. Plus un indicateur "délai moyen entre l'ordonnance et la confirmation des deux parties".
@@ -136,7 +136,7 @@ Crée le tableau de bord du médiateur sur /mediateur, accessible après connexi
 - Mise à jour en temps réel avec Supabase Realtime (abonnement aux tables dossiers et parties). Quand un dossier change de statut, anime la carte (léger flash vert) : c'est le moment fort de la démo.
 - Page de détail /mediateur/dossiers/[id] : coordonnées des parties confirmées (téléphone et email cliquables) ; si passer_par_avocat est vrai, afficher en priorité les coordonnées de l'avocat avec la mention "Le client souhaite être contacté via son avocat" ; créneau du rendez-vous si fixé ; interrupteur "Provision consignée".
 - Signale en rouge les dossiers sans confirmation complète depuis plus de 7 jours.
-- Laisse un emplacement pour un bouton "Relancer" sur la page de détail : la personne 5 y branchera l'envoi d'email. Exporte un composant vide components/relance-button.tsx qu'elle remplira.
+- Laisse un emplacement pour un bouton "Relancer" sur la page de détail : la personne 5 y branchera l'envoi d'email. Exporte un composant vide src/components/relance-button.tsx qu'elle remplira.
 
 Teste le temps réel avec deux onglets ouverts puis lance npm run build.
 ```
@@ -144,10 +144,10 @@ Teste le temps réel avec deux onglets ouverts puis lance npm run build.
 ## Prompt 5 — Emails (Personne 5)
 
 ```
-Lis CLAUDE.md et les migrations. Je suis la personne 5 : je travaille dans lib/emails, dans les server actions d'envoi et dans components/relance-button.tsx (créé par la personne 4 ; s'il n'existe pas encore, crée-le).
+Lis CLAUDE.md et les migrations. Je suis la personne 5 : je travaille dans src/lib/emails, dans les server actions d'envoi et dans src/components/relance-button.tsx (créé par la personne 4 ; s'il n'existe pas encore, crée-le).
 
 Ajoute l'envoi d'emails avec Resend :
-- Quand un dossier passe en rdv_fixe, envoyer un email de confirmation à chaque partie (ou à son avocat si passer_par_avocat est vrai) et au médiateur : date, heure, numéro de dossier. Branche cet envoi juste après l'appel à la fonction partagée de recalcul du statut, sans modifier sa logique ; si tu dois toucher lib/, explique-moi le changement pour que je le valide avec la personne 1.
+- Quand un dossier passe en rdv_fixe, envoyer un email de confirmation à chaque partie (ou à son avocat si passer_par_avocat est vrai) et au médiateur : date, heure, numéro de dossier. Branche cet envoi dans la fonction partagée enregistrerReponse (src/lib/dossiers.ts), à l'emplacement prévu juste après la relecture du dossier, sans modifier sa logique ; si tu dois toucher src/lib/, explique-moi le changement pour que je le valide avec la personne 1.
 - Le bouton "Relancer" envoie le lien /p/[token] aux parties non confirmées dont un email est connu (partie ou avocat).
 - Emails en français, courts, sobres, en texte simple, avec l'en-tête "Médiation – Cour d'appel de Saint-Denis".
 - Si RESEND_API_KEY est absente, afficher l'email dans la console au lieu de planter.
@@ -158,7 +158,7 @@ Ensuite, teste toute l'application sur un vrai téléphone et liste-moi les bugs
 ## Prompt 6 — Parcours avocat (Personne 6)
 
 ```
-Lis CLAUDE.md et les migrations. Je suis la personne 6 : je travaille uniquement dans app/p/[token]/avocat. Les colonnes avocat_email, avocat_telephone, avocat_barreau, passer_par_avocat et rempli_par existent déjà : ne crée aucune migration.
+Lis CLAUDE.md et les migrations. Je suis la personne 6 : je travaille uniquement dans src/app/p/[token]/avocat. Les colonnes avocat_email, avocat_telephone, avocat_barreau, passer_par_avocat et rempli_par existent déjà : ne crée aucune migration.
 
 Contexte : la notification de l'ordonnance arrive souvent chez l'avocat, qui doit pouvoir répondre à la place de son client avec le même QR code.
 
@@ -169,7 +169,7 @@ Crée la route /p/[token]/avocat, mobile-first, en français, avec une barre de 
 4. Consentement : case obligatoire indiquant que l'avocat agit pour le compte de son client et que les données ne sont transmises qu'au médiateur désigné.
 5. Disponibilités : mêmes créneaux que le parcours partie, groupés par jour, sélection multiple.
 
-À la validation (server action avec la clé service_role) : enregistrer, rempli_par = avocat, confirme_le = maintenant, puis appeler la fonction partagée de recalcul du statut décrite dans CLAUDE.md. Ne duplique pas cette logique.
+À la validation (server action avec la clé service_role) : enregistrer, rempli_par = avocat, confirme_le = maintenant, puis relire le dossier avec la fonction partagée décrite dans CLAUDE.md (le statut est recalculé automatiquement par la base : n'appelle aucune fonction de recalcul). Ne duplique pas cette logique.
 
 Écran final : récapitulatif avec un bouton "Imprimer le récapitulatif" pour le dossier du cabinet.
 Si la partie a déjà confirmé, afficher un message adapté.

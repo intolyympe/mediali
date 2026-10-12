@@ -126,6 +126,11 @@ export type Database = {
           email: string | null
           consentement_rgpd: boolean
           confirme_le: string | null
+          avocat_email: string | null
+          avocat_telephone: string | null
+          avocat_barreau: string | null
+          passer_par_avocat: boolean
+          rempli_par: Database["public"]["Enums"]["rempli_par"] | null
         }
         Insert: {
           id?: string
@@ -139,6 +144,11 @@ export type Database = {
           email?: string | null
           consentement_rgpd?: boolean
           confirme_le?: string | null
+          avocat_email?: string | null
+          avocat_telephone?: string | null
+          avocat_barreau?: string | null
+          passer_par_avocat?: boolean
+          rempli_par?: Database["public"]["Enums"]["rempli_par"] | null
         }
         Update: {
           id?: string
@@ -152,6 +162,11 @@ export type Database = {
           email?: string | null
           consentement_rgpd?: boolean
           confirme_le?: string | null
+          avocat_email?: string | null
+          avocat_telephone?: string | null
+          avocat_barreau?: string | null
+          passer_par_avocat?: boolean
+          rempli_par?: Database["public"]["Enums"]["rempli_par"] | null
         }
         Relationships: [
           {
@@ -210,6 +225,7 @@ export type Database = {
         | "joignable"
         | "rdv_fixe"
       role_partie: "demandeur" | "defendeur"
+      rempli_par: "partie" | "avocat"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -217,8 +233,10 @@ export type Database = {
   }
 }
 
-// Raccourcis : Tables<"dossiers">, Enums<"statut_dossier">
+// Raccourcis : Tables<"dossiers">, TablesUpdate<"parties">, Enums<"statut_dossier">
 export type Tables<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Row"]
+export type TablesUpdate<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Update"]
 export type Enums<T extends keyof Database["public"]["Enums"]> =
   Database["public"]["Enums"][T]

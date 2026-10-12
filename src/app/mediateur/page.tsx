@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 
+import { BoutonDeconnexion } from "@/components/bouton-deconnexion"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -11,52 +11,64 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { lireMediateurId } from "@/lib/roles"
 import { LIBELLES_STATUT } from "@/lib/statuts"
 import { createClient } from "@/lib/supabase/server"
 
-import { seDeconnecter } from "../connexion/actions"
-
 export const metadata: Metadata = {
-  title: "Tableau de bord — Médiation",
+  title: "Espace médiateur — Médiation",
 }
 
 const formatDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short" })
 
-export default function TableauDeBord() {
+// Point de départ du tableau de bord médiateur (personne 4).
+
+export default function EspaceMediateur() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-8">
       <Suspense
         fallback={<p className="text-sm text-muted-foreground">Chargement…</p>}
       >
-        <ContenuTableauDeBord />
+        <ContenuEspaceMediateur />
       </Suspense>
     </main>
   )
 }
 
 // Lit la session et la base : rendu à chaque requête, d'où le Suspense.
-async function ContenuTableauDeBord() {
+async function ContenuEspaceMediateur() {
   const supabase = await createClient()
   const { data: claims } = await supabase.auth.getClaims()
+  const mediateurId = lireMediateurId(claims?.claims)
+
+  if (!mediateurId) {
+    return (
+      <div className="flex flex-col items-start gap-4">
+        <p role="alert" className="text-sm text-destructive">
+          Ce compte n&apos;est relié à aucun médiateur. Contactez l&apos;administrateur.
+        </p>
+        <BoutonDeconnexion />
+      </div>
+    )
+  }
+
+  // Le médiateur ne voit que les dossiers qui lui sont confiés
   const { data: dossiers, error } = await supabase
     .from("dossiers")
     .select("id, numero_rg, juridiction, date_ordonnance, statut")
+    .eq("mediateur_id", mediateurId)
     .order("created_at", { ascending: false })
 
   return (
     <>
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Tableau de bord</h1>
+          <h1 className="text-xl font-semibold">Espace médiateur</h1>
           <p className="text-sm text-muted-foreground">
             Connecté en tant que {claims?.claims.email}
           </p>
         </div>
-        <form action={seDeconnecter}>
-          <Button type="submit" variant="outline">
-            Se déconnecter
-          </Button>
-        </form>
+        <BoutonDeconnexion />
       </header>
 
       {error ? (

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation"
 
+import { ACCUEIL_PAR_ROLE, lireRole } from "@/lib/roles"
 import { createClient } from "@/lib/supabase/server"
 
 export type EtatConnexion = {
@@ -24,7 +25,7 @@ export async function seConnecter(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: motDePasse,
   })
@@ -33,7 +34,16 @@ export async function seConnecter(
     return { erreur: "Adresse e-mail ou mot de passe incorrect.", email }
   }
 
-  redirect("/tableau-de-bord")
+  const role = lireRole(data.user)
+  if (!role) {
+    await supabase.auth.signOut()
+    return {
+      erreur: "Ce compte n'a pas encore de rôle (greffe ou médiateur). Contactez l'administrateur.",
+      email,
+    }
+  }
+
+  redirect(ACCUEIL_PAR_ROLE[role])
 }
 
 export async function seDeconnecter() {

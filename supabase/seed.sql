@@ -6,6 +6,8 @@
 -- -----------------------------------------------------------------------------
 -- Comptes de connexion : greffe@exemple.fr et mediateur@exemple.fr
 -- Mot de passe : motdepasse
+-- Le rôle (et pour le médiateur, son id dans la table mediateurs) est stocké
+-- dans raw_app_meta_data : voir src/lib/roles.ts.
 -- -----------------------------------------------------------------------------
 
 insert into auth.users (
@@ -16,12 +18,14 @@ insert into auth.users (
 select
   '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
   extensions.crypt('motdepasse', extensions.gen_salt('bf')), now(),
-  '{"provider": "email", "providers": ["email"]}', jsonb_build_object('fonction', u.fonction),
+  '{"provider": "email", "providers": ["email"]}'::jsonb || u.app_metadata, '{}',
   now(), now(), '', '', '', ''
 from (values
-  ('aaaaaaaa-0000-0000-0000-000000000001'::uuid, 'greffe@exemple.fr', 'greffe'),
-  ('aaaaaaaa-0000-0000-0000-000000000002'::uuid, 'mediateur@exemple.fr', 'mediateur')
-) as u (id, email, fonction);
+  ('aaaaaaaa-0000-0000-0000-000000000001'::uuid, 'greffe@exemple.fr',
+   '{"role": "greffe"}'::jsonb),
+  ('aaaaaaaa-0000-0000-0000-000000000002'::uuid, 'mediateur@exemple.fr',
+   '{"role": "mediateur", "mediateur_id": "11111111-0000-0000-0000-000000000001"}'::jsonb)
+) as u (id, email, app_metadata);
 
 insert into auth.identities (
   id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
@@ -88,6 +92,16 @@ insert into public.parties (dossier_id, role, nom, prenom, avocat_nom, token, te
   -- Dossier 3 : les deux ont répondu avec un créneau commun → rdv_fixe
   ('22222222-0000-0000-0000-000000000003', 'demandeur', 'Fontaine', 'Gérald',   null,              'demo-3-demandeur', '0693 00 00 03', 'g.fontaine@exemple.fr', true, now() - interval '5 days'),
   ('22222222-0000-0000-0000-000000000003', 'defendeur', 'Maillot',  'Sandrine', 'Me Anne Boyer',   'demo-3-defendeur', '0692 00 00 04', 's.maillot@exemple.fr',  true, now() - interval '1 day');
+
+-- Dossier 3 : le demandeur a répondu lui-même, le défendeur via son avocate
+update public.parties set rempli_par = 'partie' where token in ('demo-2-demandeur', 'demo-3-demandeur');
+update public.parties
+set rempli_par = 'avocat',
+    passer_par_avocat = true,
+    avocat_email = 'a.boyer@avocats-exemple.fr',
+    avocat_telephone = '0262 00 00 05',
+    avocat_barreau = 'Saint-Denis de La Réunion'
+where token = 'demo-3-defendeur';
 
 -- -----------------------------------------------------------------------------
 -- Disponibilités (créneaux numérotés par ordre chronologique)
