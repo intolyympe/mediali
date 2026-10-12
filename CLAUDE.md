@@ -40,6 +40,19 @@ les coordonnées des parties. Le premier rendez-vous de médiation prend du reta
   `npm run build` échoue avec « uncached or runtime data during prerendering ».
   Modèle : `src/app/mediateur/page.tsx` (page synchrone + composant async dans
   `<Suspense>`).
+- **Erreur « encountered the unstable value `Date.now()` while prerendering »**
+  (aussi `new Date()`, `Math.random()`, `crypto.randomUUID()`). `<Suspense>` ne
+  suffit pas, et `await cookies()` non plus : le préchargement partiel
+  (`partialPrefetching`) fournit les cookies pendant le prérendu. Il faut appeler
+  **`await connection()`** (import depuis `next/server`) **avant** la valeur
+  instable. C'est déjà fait dans `createClient()` de
+  `src/lib/supabase/server.ts` (la lecture de session Supabase appelle
+  `Date.now()`) et dans les fonctions de lecture de `src/lib/dossiers.ts`.
+  Règle : utiliser ces fonctions partagées ; si vous appelez vous-même
+  `new Date()`, `Date.now()` ou `createAdminClient()` pendant le rendu d'une page,
+  mettre `await connection()` juste avant, dans un composant sous `<Suspense>`.
+  Pas de `"use client"` ni de `"use cache"` pour contourner : les données de
+  session et des dossiers doivent être lues à chaque requête.
 - `cookies()`, `headers()`, `params` et `searchParams` sont **asynchrones** :
   toujours `await`.
 - **shadcn base-nova utilise Base UI, pas Radix** : il n'y a pas de prop

@@ -1,5 +1,7 @@
 import "server-only"
 
+import { connection } from "next/server"
+
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { TablesUpdate } from "@/lib/supabase/database.types"
 
@@ -12,12 +14,16 @@ import type { TablesUpdate } from "@/lib/supabase/database.types"
 // recalculés AUTOMATIQUEMENT par la base (trigger SQL, voir
 // supabase/migrations/20261012000000_schema_initial.sql). Aucune fonction de
 // recalcul n'est à appeler depuis le code.
+//
+// Les fonctions de lecture commencent par `await connection()` : elles sont
+// utilisables dans une page (dans un <Suspense>) sans erreur de prérendu.
 
 /**
  * Retrouve une partie et son dossier à partir du token du QR code.
  * Renvoie null si le token est inconnu.
  */
 export async function trouverPartieParToken(token: string) {
+  await connection()
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from("parties")
@@ -49,6 +55,7 @@ export function memeNom(saisi: string, attendu: string) {
  * triés par date. À proposer aux parties à l'étape « Disponibilités ».
  */
 export async function creneauxLibres(mediateurId: string) {
+  await connection()
   const supabase = createAdminClient()
   const [creneaux, reserves] = await Promise.all([
     supabase
@@ -72,6 +79,7 @@ export async function creneauxLibres(mediateurId: string) {
  * fixé (null sinon).
  */
 export async function relireDossier(dossierId: string) {
+  await connection()
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from("dossiers")

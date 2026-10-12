@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { connection } from "next/server"
 
 import type { Database } from "./database.types"
 
@@ -7,6 +8,12 @@ import type { Database } from "./database.types"
 // À utiliser dans les Server Components, server actions et route handlers.
 // Soumis à la RLS. Créer un nouveau client à chaque requête.
 export async function createClient() {
+  // Arrête le prérendu ici : la lecture de session de Supabase (getClaims,
+  // getUser…) appelle Date.now(), interdit pendant le prérendu avec
+  // cacheComponents. `await cookies()` ne suffit pas : le préchargement
+  // partiel (partialPrefetching) fournit les cookies pendant le prérendu.
+  await connection()
+
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
