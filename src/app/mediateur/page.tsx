@@ -2,26 +2,15 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 
 import { BoutonDeconnexion } from "@/components/bouton-deconnexion"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { lireMediateurId } from "@/lib/roles"
-import { LIBELLES_STATUT } from "@/lib/statuts"
 import { createClient } from "@/lib/supabase/server"
+
+import { SELECT_DOSSIERS } from "./donnees"
+import { TableauDeBord } from "./tableau-de-bord"
 
 export const metadata: Metadata = {
   title: "Espace médiateur — Médiation",
 }
-
-const formatDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short" })
-
-// Point de départ du tableau de bord médiateur (personne 4).
 
 export default function EspaceMediateur() {
   return (
@@ -55,7 +44,7 @@ async function ContenuEspaceMediateur() {
   // Le médiateur ne voit que les dossiers qui lui sont confiés
   const { data: dossiers, error } = await supabase
     .from("dossiers")
-    .select("id, numero_rg, juridiction, date_ordonnance, statut")
+    .select(SELECT_DOSSIERS)
     .eq("mediateur_id", mediateurId)
     .order("created_at", { ascending: false })
 
@@ -76,33 +65,18 @@ async function ContenuEspaceMediateur() {
           Impossible de charger les dossiers : {error.message}
         </p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>N° RG</TableHead>
-              <TableHead>Juridiction</TableHead>
-              <TableHead>Ordonnance</TableHead>
-              <TableHead>Statut</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {dossiers.map((dossier) => (
-              <TableRow key={dossier.id}>
-                <TableCell className="font-medium">{dossier.numero_rg}</TableCell>
-                <TableCell>{dossier.juridiction}</TableCell>
-                <TableCell>
-                  {formatDate.format(new Date(dossier.date_ordonnance))}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={dossier.statut === "rdv_fixe" ? "default" : "secondary"}>
-                    {LIBELLES_STATUT[dossier.statut]}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <TableauDeBord
+          mediateurId={mediateurId}
+          dossiersInitiaux={dossiers}
+          maintenant={heureDeRequete()}
+        />
       )}
     </>
   )
+}
+
+// Heure de la requête (après connection(), appelé par createClient) : sert au
+// calcul des jours écoulés côté client sans Date.now() pendant le rendu.
+function heureDeRequete() {
+  return Date.now()
 }
