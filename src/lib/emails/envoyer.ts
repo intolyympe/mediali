@@ -15,7 +15,7 @@ export type Email = {
 // Adresse d'expédition : doit appartenir à un domaine vérifié sur Resend.
 // onboarding@resend.dev ne peut écrire qu'à l'adresse du compte Resend.
 const EXPEDITEUR =
-  process.env.EMAIL_EXPEDITEUR || "Médialien – Cour d'appel de Saint-Denis <onboarding@resend.dev>"
+  process.env.EMAIL_EXPEDITEUR || "Médiali – Cour d'appel de Saint-Denis <onboarding@resend.dev>"
 
 /**
  * Vocabulaire des e-mails selon dossiers.mode :

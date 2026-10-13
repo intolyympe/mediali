@@ -9,7 +9,7 @@ import { filtreIntervenant, SELECT_DOSSIERS } from "./donnees"
 import { TableauDeBord } from "./tableau-de-bord"
 
 export const metadata: Metadata = {
-  title: "Espace médiateur — Médialien",
+  title: "Espace médiateur — Médiali",
 }
 
 export default function EspaceMediateur() {

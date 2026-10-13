@@ -9,7 +9,7 @@ export function EnTete() {
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-8 gap-y-4 px-4 py-4">
         <Link
           href="/"
-          title="Accueil — Médialien"
+          title="Accueil — Médiali"
           className="flex items-center gap-6 text-foreground no-underline sm:gap-8"
         >
           <BlocMarque />
@@ -17,7 +17,7 @@ export function EnTete() {
             <span className="text-xs text-muted-foreground sm:text-sm">
               Cour d&apos;appel de Saint-Denis de La Réunion
             </span>
-            <span className="text-xl font-bold text-foreground">Médialien</span>
+            <span className="text-xl font-bold text-foreground">Médiali</span>
             <span className="text-sm text-muted-foreground">
               Médiation et conciliation judiciaires
             </span>

@@ -105,7 +105,7 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
             "",
             ...lignesRdv,
             "",
-            "Les coordonnées des parties sont disponibles dans votre espace Médialien.",
+            "Les coordonnées des parties sont disponibles dans votre espace Médiali.",
           ].join("\n"),
           mode
         ),

@@ -101,6 +101,9 @@ async function DetailDossier({ params }: Pick<PageProps<"/juridiction/dossiers/[
               className="print:break-inside-avoid print:shadow-none print:ring-0 print:[&:not(:first-of-type)]:break-before-page"
             >
               <CardHeader>
+                <p className="text-sm font-bold text-primary">
+                  Médiali · Cour d&apos;appel de Saint-Denis de La Réunion
+                </p>
                 <CardTitle>À joindre à la notification</CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Dossier n° {dossier.numero_rg} · {LIBELLES_ROLE[partie.role]} : {partie.prenom}{" "}

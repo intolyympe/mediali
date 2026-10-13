@@ -10,7 +10,7 @@ export function PiedDePage() {
         <BlocMarque taille="petite" />
         <div className="flex max-w-xl flex-col gap-3 text-sm text-muted-foreground">
           <p>
-            <strong className="text-foreground">Médialien</strong> transmet au médiateur
+            <strong className="text-foreground">Médiali</strong> transmet au médiateur
             ou au conciliateur désigné par le juge les coordonnées et les disponibilités
             des parties, pour fixer plus vite le premier rendez-vous.
           </p>

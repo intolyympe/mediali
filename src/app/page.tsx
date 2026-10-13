@@ -12,7 +12,7 @@ export default function Accueil() {
 
       <div className="flex flex-col gap-4">
         <h1 className="text-3xl font-bold text-balance sm:text-4xl">
-          Médialien : un QR code pour joindre les parties
+          Médiali : un QR code pour joindre les parties
         </h1>
         <p className="text-lg text-muted-foreground">
           Imprimé sur la notification de l&apos;ordonnance, un QR code permet à chaque partie, ou

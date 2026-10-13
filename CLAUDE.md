@@ -89,7 +89,7 @@ Le modèle de données actuel est décrit dans **Modèle V2** ci-dessous.
 ## Charte DSFR
 
 L'apparence suit le **Système de Design de l'État** (DSFR) : service
-« **Médialien** — Médiation et conciliation judiciaires », Cour d'appel de
+« **Médiali** — Médiation et conciliation judiciaires », Cour d'appel de
 Saint-Denis de La Réunion.
 
 ### Mise en place (ne pas casser)

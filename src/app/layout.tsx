@@ -28,7 +28,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Médialien — Médiation et conciliation judiciaires",
+  title: "Médiali — Médiation et conciliation judiciaires",
   description:
     "Transmission des coordonnées et disponibilités des parties au médiateur ou au conciliateur désigné — Cour d'appel de Saint-Denis de La Réunion.",
 }
