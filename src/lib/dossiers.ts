@@ -2,6 +2,7 @@ import "server-only"
 
 import { connection } from "next/server"
 
+import { envoyerConfirmationsRdv } from "@/lib/emails/confirmation-rdv"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { TablesUpdate } from "@/lib/supabase/database.types"
 
@@ -155,8 +156,11 @@ export async function enregistrerReponse(
 
   const dossier = await relireDossier(partie.dossier_id)
 
-  // Personne 5 : brancher ici l'envoi des emails de confirmation quand
-  // dossier.statut === "rdv_fixe" (sans modifier le reste de cette fonction).
+  // Le rendez-vous vient d'être fixé par cette réponse : e-mails de
+  // confirmation aux parties (ou à leur avocat) et au médiateur. Ne lève jamais.
+  if (dossier.statut === "rdv_fixe") {
+    await envoyerConfirmationsRdv(dossier.id)
+  }
 
   return dossier
 }
