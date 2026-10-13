@@ -226,4 +226,4 @@ for (const [role, libelle] of [["demandeur", "Demandeur"], ["defendeur", "Défen
   console.log(`  ${libelle} (${fiche.prenom} ${fiche.nom}) : ${urlSite}/p/${partie.token}`)
   console.log(`    son avocat : ${urlSite}/p/${partie.token}/avocat`)
 }
-console.log(`\nQR codes imprimables : ${urlSite}/greffe/dossiers/${direct.id}`)
+console.log(`\nQR codes imprimables : ${urlSite}/juridiction/dossiers/${direct.id}`)

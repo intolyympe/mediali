@@ -2,7 +2,7 @@
 
 Hackathon Justice Tech — Cour d'appel de Saint-Denis.
 
-Quand un juge désigne un médiateur, le greffe crée un dossier et imprime un QR
+Quand un juge désigne un médiateur, la juridiction crée un dossier et imprime un QR
 code unique pour chaque partie sur la notification. La partie scanne le code,
 renseigne ses coordonnées, donne son consentement RGPD et indique ses
 disponibilités. Le médiateur suit tout en temps réel sur son tableau de bord.
@@ -51,22 +51,32 @@ Ouvrir http://localhost:3000.
 
 ## Données de démonstration
 
-`npm run db:start` applique automatiquement la migration et le fichier
-`supabase/seed.sql`. Pour repartir de zéro : `npm run db:reset`.
+`npm run db:start` applique automatiquement les migrations, puis
+`supabase/seed.sql` (données) et `supabase/comptes-demo.sql` (comptes, en local
+uniquement). Pour repartir de zéro : `npm run db:reset`.
 
 Comptes de connexion (mot de passe : `motdepasse`) :
 
-- `greffe@exemple.fr` → espace greffe, `/greffe`
+- `greffe@exemple.fr` → espace juridiction, `/juridiction`
 - `mediateur@exemple.fr` → espace médiateur, `/mediateur`
 
-Le seed crée un médiateur, 10 créneaux sur les 7 prochains jours ouvrés et
-3 dossiers fictifs :
+Le seed (modèle V2) crée un médiateur, un co-médiateur et un conciliateur,
+10 créneaux sur les 7 prochains jours ouvrés, 7 dossiers fictifs et leur
+timeline. Il ne touche jamais aux comptes utilisateurs.
 
-| N° RG    | Statut                  | Jetons des parties                       |
-| -------- | ----------------------- | ---------------------------------------- |
-| 26/00123 | En attente              | `demo-1-demandeur`, `demo-1-defendeur`   |
-| 26/00145 | Partiellement joignable | `demo-2-demandeur`, `demo-2-defendeur`   |
-| 26/00167 | RDV fixé                | `demo-3-demandeur`, `demo-3-defendeur`   |
+| N° RG    | Cas                                   | Statut / issue                  | Jetons des parties |
+| -------- | ------------------------------------- | ------------------------------- | ------------------ |
+| 26/00123 | Médiation, personne n'a répondu       | En attente                      | `demo-1-demandeur`, `demo-1-defendeur` |
+| 26/00145 | Médiation, une réponse                | Partiellement joignable         | `demo-2-demandeur`, `demo-2-defendeur` |
+| 26/00167 | Médiation, réponse via avocate        | RDV fixé                        | `demo-3-demandeur`, `demo-3-defendeur` |
+| 26/00180 | Conciliation                          | Partiellement joignable         | `demo-4-demandeur`, `demo-4-defendeur` |
+| 26/00192 | 3 parties, co-médiation, un refus     | Partiellement joignable         | `demo-5-demandeur-1`, `demo-5-demandeur-2`, `demo-5-defendeur` |
+| 26/00098 | Dossier clos                          | Accord total                    | `demo-6-…` |
+| 26/00105 | Dossier clos                          | Carence                         | `demo-7-…` |
+
+Sur un projet Supabase hébergé : coller dans l'éditeur SQL le contenu de
+`supabase/vider-donnees.sql` suivi de celui de `supabase/seed.sql`, et exécuter
+le tout en une fois.
 
 ### Remettre la démo à zéro (base hébergée comprise)
 
@@ -117,12 +127,12 @@ npx supabase link --project-ref <ref-du-projet>
 npx supabase db push
 ```
 
-Ne pas exécuter `seed.sql` en production. Créer les comptes du greffe et des
+Ne pas exécuter `comptes-demo.sql` en production. Créer les comptes de la juridiction et des
 médiateurs depuis le Studio (Authentication → Users), puis leur attribuer un
 rôle dans l'éditeur SQL :
 
 ```sql
--- Compte greffe
+-- Compte juridiction (le rôle technique reste "greffe")
 update auth.users
 set raw_app_meta_data = raw_app_meta_data || '{"role": "greffe"}'
 where email = 'greffe@exemple.fr';

@@ -24,11 +24,11 @@ export default function Accueil() {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button
-          render={<Link href="/greffe" />}
+          render={<Link href="/juridiction" />}
           nativeButton={false}
           className="h-12 px-6 text-base"
         >
-          Espace greffe
+          Espace juridiction
         </Button>
         <Button
           variant="outline"

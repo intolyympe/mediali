@@ -1,12 +1,13 @@
+import { aRepondu } from "@/lib/statuts"
 import type { Enums, Tables } from "@/lib/supabase/database.types"
 
 // Requête commune au rendu serveur et au rechargement temps réel du tableau de bord.
 export const SELECT_DOSSIERS =
-  "id, numero_rg, date_ordonnance, statut, parties(id, role, consentement_rgpd, confirme_le, rempli_par)"
+  "id, numero_rg, date_ordonnance, statut, parties(id, role, consentement_rgpd, confirme_le, rempli_par, choix)"
 
 type PartieTableau = Pick<
   Tables<"parties">,
-  "id" | "role" | "consentement_rgpd" | "confirme_le" | "rempli_par"
+  "id" | "role" | "consentement_rgpd" | "confirme_le" | "rempli_par" | "choix"
 >
 
 export type DossierTableau = Pick<
@@ -24,8 +25,11 @@ export const COULEURS_STATUT: Record<Enums<"statut_dossier">, string> = {
 
 const JOUR_MS = 24 * 60 * 60 * 1000
 
-export function estConfirmee(partie: Pick<PartieTableau, "consentement_rgpd" | "confirme_le">) {
-  return partie.consentement_rgpd && partie.confirme_le !== null
+// Même règle que la base : une partie qui a refusé a aussi répondu
+export function estConfirmee(
+  partie: Pick<PartieTableau, "consentement_rgpd" | "confirme_le"> & Partial<Pick<PartieTableau, "choix">>
+) {
+  return aRepondu(partie)
 }
 
 export function joursDepuis(dateOrdonnance: string, maintenant: number) {

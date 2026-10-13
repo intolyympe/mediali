@@ -4,7 +4,7 @@ import { connection } from "next/server"
 
 import type { Database } from "./database.types"
 
-// Client serveur lié à la session de l'utilisateur connecté (greffe, médiateur).
+// Client serveur lié à la session de l'utilisateur connecté (juridiction, médiateur).
 // À utiliser dans les Server Components, server actions et route handlers.
 // Soumis à la RLS. Créer un nouveau client à chaque requête.
 export async function createClient() {

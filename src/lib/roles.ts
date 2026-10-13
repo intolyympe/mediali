@@ -2,12 +2,15 @@
 // serveur ou en SQL, contrairement à user_metadata). Il est inclus dans le JWT,
 // donc lisible sans requête à la base.
 //
+// Le rôle technique "greffe" correspond à l'espace « juridiction » (/juridiction) :
+// il n'a pas été renommé pour ne pas modifier les comptes existants.
+//
 //   { "role": "greffe" }
 //   { "role": "mediateur", "mediateur_id": "<id dans la table mediateurs>" }
 export type Role = "greffe" | "mediateur"
 
 export const ACCUEIL_PAR_ROLE: Record<Role, string> = {
-  greffe: "/greffe",
+  greffe: "/juridiction",
   mediateur: "/mediateur",
 }
 

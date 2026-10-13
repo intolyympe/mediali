@@ -13,15 +13,21 @@ les coordonnées des parties. Le premier rendez-vous de médiation prend du reta
 
 ## Solution
 
-1. Le **greffe** crée un dossier (n° RG, juridiction, date d'ordonnance,
-   médiateur) et ses deux parties (demandeur, défendeur).
+1. La **juridiction** (greffe) crée un dossier de médiation ou de
+   conciliation (n° RG, juridiction, date d'ordonnance, médiateur ou
+   conciliateur, co-médiateur éventuel) et ses parties (un ou plusieurs
+   demandeurs et défendeurs).
 2. L'application génère un **QR code unique par partie** (lien `/p/<token>`),
    imprimé sur la notification envoyée à la partie.
 3. La **partie** scanne le QR code sur son téléphone, renseigne ses coordonnées,
    donne son **consentement RGPD** et coche ses **disponibilités** parmi les
    créneaux du médiateur. Son **avocat** peut répondre à sa place avec le même
    QR code (`/p/<token>/avocat`).
-4. Le **médiateur** suit l'avancement en temps réel sur son tableau de bord.
+4. Le **médiateur** suit l'avancement en temps réel sur son tableau de bord ;
+   la juridiction et le médiateur voient la **timeline** de chaque dossier
+   (réponses, refus, rendez-vous, compte rendu, issue).
+
+Le modèle de données actuel est décrit dans **Modèle V2** ci-dessous.
 
 ## Stack
 
@@ -58,8 +64,18 @@ les coordonnées des parties. Le premier rendez-vous de médiation prend du reta
 - **shadcn base-nova utilise Base UI, pas Radix** : il n'y a pas de prop
   `asChild`. Utiliser la prop **`render`**, avec `nativeButton={false}` quand
   l'élément rendu n'est pas un `<button>` (lien, div) :
-  `<Button render={<Link href="/greffe" />} nativeButton={false}>Retour</Button>`.
+  `<Button render={<Link href="/juridiction" />} nativeButton={false}>Retour</Button>`.
 - `cn` vient du paquet `cn` (réexporté par `src/lib/utils.ts`).
+- **Jointure vers `mediateurs` depuis `dossiers` : toujours préciser la clé**,
+  car il y a deux liens (`mediateur_id` et `co_mediateur_id`). Sinon Supabase
+  renvoie l'erreur PGRST201 « more than one relationship was found ».
+  `mediateurs!dossiers_mediateur_id_fkey (nom)` pour le médiateur,
+  `co_mediateur:mediateurs!dossiers_co_mediateur_id_fkey (nom)` pour le
+  co-médiateur.
+- **Après le renommage `greffe` → `juridiction`**, si `npm run build` ou
+  `npm run typecheck` signale `Cannot find module '…/src/app/greffe/…'` dans
+  `.next/…/validator.ts` : arrêter `npm run dev`, supprimer `.next`
+  (`rm -rf .next`) et relancer.
 - Avant de coder avec une API Next.js, consulter `node_modules/next/dist/docs/`.
 
 ## Schéma de la base
@@ -75,6 +91,7 @@ affichées en `fr-FR` avec le fuseau `Indian/Reunion`.
 | `nom`       | text        | |
 | `email`     | text        | unique |
 | `telephone` | text, null  | |
+| `fonction`  | enum `fonction_amiable` | défaut `mediateur` (V2) |
 
 ### `dossiers`
 | Colonne               | Type                  | Remarque |
@@ -88,22 +105,29 @@ affichées en `fr-FR` avec le fuseau `Indian/Reunion`.
 | `statut`              | enum `statut_dossier` | **calculé par la base, ne jamais l'écrire** |
 | `rdv_creneau_id`      | uuid, null            | → `creneaux.id`, unique (un créneau = un seul dossier) |
 | `created_at`          | timestamptz           | défaut `now()` |
+| `mode`                | enum `mode_amiable`   | défaut `mediation` (V2) |
+| `co_mediateur_id`     | uuid, null            | → `mediateurs.id`, différent de `mediateur_id` (V2) |
+| `rdv_format`, `rdv_lieu` | enums, null        | choisis par le médiateur (V2) |
+| `issue`               | enum `issue_dossier`  | défaut `en_cours` (V2) |
+| `compte_rendu`        | text, null            | (V2) |
+| `cloture_le`          | timestamptz, null     | à renseigner par l'application quand l'issue est fixée (V2) |
 
-Statuts (`statut_dossier`) :
-- `en_attente` : aucune partie n'a confirmé.
-- `partiellement_joignable` : une partie sur deux a confirmé.
-- `joignable` : les deux parties ont confirmé, pas encore de créneau commun.
+Statuts (`statut_dossier`), calculés par la base :
+- `en_attente` : aucune partie n'a répondu.
+- `partiellement_joignable` : au moins une partie a répondu, pas toutes.
+- `joignable` : toutes les parties ont répondu, pas de créneau commun.
 - `rdv_fixe` : un rendez-vous est fixé (`rdv_creneau_id` renseigné).
 
-Une partie est **confirmée** quand `consentement_rgpd = true` **et**
-`confirme_le` est renseigné.
+Une partie **a répondu** quand `confirme_le` est renseigné **et** qu'elle a
+donné son consentement (`consentement_rgpd = true`) **ou** refusé
+(`choix = 'refuse'`). Côté TypeScript : `aRepondu(partie)`.
 
 ### `parties`
 | Colonne             | Type               | Remarque |
 | ------------------- | ------------------ | -------- |
 | `id`                | uuid               | clé primaire |
 | `dossier_id`        | uuid               | → `dossiers.id` (suppression en cascade) |
-| `role`              | enum `role_partie` | `demandeur` ou `defendeur`, un seul de chaque par dossier |
+| `role`              | enum `role_partie` | `demandeur` ou `defendeur` ; plusieurs de chaque possibles (V2) |
 | `nom`, `prenom`     | text               | |
 | `token`             | text               | unique ; généré automatiquement par la base (32 caractères hexadécimaux) si on ne le fournit pas à l'insertion |
 | `telephone`, `email`| text, null         | coordonnées de la partie |
@@ -113,6 +137,9 @@ Une partie est **confirmée** quand `consentement_rgpd = true` **et**
 | `passer_par_avocat` | bool               | défaut `false` : le médiateur doit contacter l'avocat |
 | `avocat_nom`        | text, null         | |
 | `avocat_email`, `avocat_telephone`, `avocat_barreau` | text, null | |
+| `telephone_2`, `email_2`, `adresse` | text, null | coordonnées supplémentaires (V2) |
+| `choix`             | enum `choix_partie`, null | réponse de la partie (V2) |
+| `pref_format`, `pref_lieu` | enums, null | préférences pour le premier rendez-vous (V2) |
 
 ### `creneaux`
 | Colonne        | Type        | Remarque |
@@ -124,12 +151,19 @@ Une partie est **confirmée** quand `consentement_rgpd = true` **et**
 ### `disponibilites`
 Créneaux choisis par une partie. Clé primaire (`partie_id`, `creneau_id`).
 
+### `evenements` (V2)
+Timeline d'un dossier, voir **Modèle V2**.
+
 ### Comptes et rôles
-Les comptes greffe et médiateur sont des utilisateurs Supabase Auth. Le rôle
-est stocké dans **`app_metadata`** (lisible dans le JWT, non modifiable par
+Les comptes juridiction et médiateur sont des utilisateurs Supabase Auth. Le
+rôle est stocké dans **`app_metadata`** (lisible dans le JWT, non modifiable par
 l'utilisateur) :
-- `{ "role": "greffe" }` → espace `/greffe`
+- `{ "role": "greffe" }` → espace **juridiction**, `/juridiction`. Le rôle
+  technique s'appelle toujours `"greffe"` (pas de modification des comptes
+  existants) : seuls les textes et la route ont été renommés. `/greffe`
+  redirige vers `/juridiction` (`next.config.ts`).
 - `{ "role": "mediateur", "mediateur_id": "<uuid>" }` → espace `/mediateur`
+  (médiateurs et conciliateurs)
 
 Le proxy redirige chaque compte vers son espace après connexion et l'empêche
 d'entrer dans l'autre. Les politiques RLS, elles, ne distinguent pas les rôles :
@@ -137,7 +171,89 @@ tout utilisateur connecté peut lire et écrire toutes les tables.
 
 ### Sécurité
 - RLS activée partout : lecture et écriture réservées aux utilisateurs connectés.
-- Realtime activé sur `dossiers` et `parties`.
+- Realtime activé sur `dossiers`, `parties` et `evenements`.
+
+## Modèle V2
+
+Évolution demandée par les professionnels du droit
+(`supabase/migrations/20261013000000_modele_v2.sql`). Afficher toujours le
+libellé français (`src/lib/statuts.ts`), jamais la valeur technique.
+
+### Médiation ou conciliation
+- `dossiers.mode` (`mode_amiable`, défaut `mediation`) :
+  `mediation` « Médiation », `conciliation` « Conciliation ».
+- `mediateurs.fonction` (`fonction_amiable`, défaut `mediateur`) :
+  `mediateur` « Médiateur », `conciliateur` « Conciliateur ».
+  Un conciliateur est une ligne de `mediateurs` : il utilise l'espace
+  `/mediateur` et `dossiers.mediateur_id`.
+- `dossiers.co_mediateur_id` : co-médiation, en général quand il y a plus de
+  2 parties. Doit être différent de `mediateur_id`. Les créneaux proposés et le
+  rendez-vous automatique restent ceux du médiateur principal.
+
+### Plusieurs parties
+- Plus de limite « une partie par rôle » : un dossier peut avoir plusieurs
+  demandeurs et plusieurs défendeurs, chacun avec son propre QR code.
+- Coordonnées supplémentaires : `telephone_2`, `email_2`, `adresse`.
+
+### Choix et préférences de la partie
+- `parties.choix` (`choix_partie`, null tant que pas de réponse) :
+  `information` « Réunion d'information d'abord », `accepte` « Accepte la
+  médiation », `refuse` « Refuse ». Un refus compte comme une réponse, sans
+  consentement RGPD obligatoire.
+- `parties.pref_format` (`preference_format`) : `ensemble` « Ensemble »,
+  `separe` « Séparément », `indifferent` « Indifférent ».
+- `parties.pref_lieu` (`preference_lieu`) : `presentiel` « En présentiel »,
+  `distanciel` « À distance », `indifferent` « Indifférent ».
+- `parties.rempli_par` (`rempli_par`) : `partie` « La partie », `avocat`
+  « Son avocat ».
+
+### Rendez-vous fixé par le médiateur
+- `dossiers.rdv_format` (`format_rdv`) : `ensemble` « Ensemble », `separe`
+  « Séparément ».
+- `dossiers.rdv_lieu` (`lieu_rdv`) : `presentiel` « En présentiel »,
+  `distanciel` « À distance ».
+- Le créneau (`rdv_creneau_id`) reste réservé automatiquement par la base ; le
+  médiateur renseigne ensuite le format et le lieu.
+
+### Issue du dossier
+- `dossiers.issue` (`issue_dossier`, défaut `en_cours`) : `en_cours` « En
+  cours », `accord_total` « Accord total », `accord_partiel` « Accord
+  partiel », `echec` « Échec », `carence` « Carence » (une partie ne s'est pas
+  présentée), `refus` « Refus ».
+- `dossiers.compte_rendu` (texte) et `dossiers.cloture_le` (date de clôture, à
+  renseigner par l'application en même temps que l'issue).
+
+### Statut avec plusieurs parties
+Voir **Recalcul du statut** : `partiellement_joignable` dès qu'une partie a
+répondu, `joignable` quand toutes ont répondu, `rdv_fixe` dès qu'un créneau
+commun à toutes les parties qui n'ont pas refusé est trouvé (au moins 2
+parties participantes).
+
+### Timeline : table `evenements`
+| Colonne      | Type        | Remarque |
+| ------------ | ----------- | -------- |
+| `id`         | uuid        | clé primaire |
+| `dossier_id` | uuid        | → `dossiers.id` (suppression en cascade) |
+| `type`       | text        | voir ci-dessous |
+| `libelle`    | text        | phrase affichée telle quelle |
+| `acteur`     | text        | `juridiction` « Juridiction », `partie` « Partie », `avocat` « Avocat », `mediateur` « Médiateur », `systeme` « Automatique » |
+| `details`    | jsonb       | défaut `{}` |
+| `created_at` | timestamptz | date de l'événement (trier la timeline sur cette colonne) |
+
+Realtime activé, même RLS que les autres tables. **Événements créés
+automatiquement par des déclencheurs SQL** (ne pas les insérer depuis le code) :
+
+| `type`         | Quand | Exemple de `libelle` | `acteur` |
+| -------------- | ----- | -------------------- | -------- |
+| `ordonnance`   | création du dossier | « Ordonnance enregistrée » | `juridiction` |
+| `reponse`      | `confirme_le` renseigné | « Marie Payet a transmis ses coordonnées » / « … via son avocat » | `partie` ou `avocat` |
+| `refus`        | `choix` passe à `refuse` | « Marie Payet refuse la médiation » (ou « la conciliation ») | `partie` ou `avocat` |
+| `rdv_fixe`     | un créneau est affecté au dossier | « Premier rendez-vous fixé le 16/10/2026 à 14h00 » | `systeme` |
+| `issue`        | `issue` change | « Issue : accord total » | `mediateur` |
+| `compte_rendu` | `compte_rendu` renseigné ou modifié | « Compte rendu ajouté » / « Compte rendu modifié » | `mediateur` |
+
+Pour un autre événement (relance envoyée, note du médiateur…), l'insérer à la
+main dans `evenements` avec un nouveau `type`.
 
 ## Recalcul du statut : automatique
 
@@ -147,9 +263,11 @@ déclencheurs (`supabase/migrations/20261012000000_schema_initial.sql`). Ils se
 déclenchent à chaque insertion, modification ou suppression d'une partie ou
 d'une disponibilité.
 
-Quand toutes les parties sont confirmées, la base réserve le premier créneau à
-venir du médiateur choisi par toutes les parties et pas déjà pris. Un rendez-vous
-fixé n'est plus jamais modifié automatiquement.
+Quand toutes les parties ont répondu et qu'au moins 2 n'ont pas refusé, la base
+réserve le premier créneau à venir du médiateur choisi par **toutes les parties
+qui n'ont pas refusé** et pas déjà pris. Un rendez-vous fixé n'est plus jamais
+modifié automatiquement. La fonction est redéfinie dans
+`supabase/migrations/20261013000000_modele_v2.sql`.
 
 **Les parcours partie et avocat doivent seulement enregistrer les données puis
 relire le dossier. Ils n'appellent AUCUNE fonction de recalcul** et n'écrivent
@@ -173,7 +291,7 @@ passer par la personne 1.
 ### Parcours publics (`src/lib/dossiers.ts`, `server-only`)
 ```ts
 trouverPartieParToken(token: string)
-  // → partie + dossier { id, numero_rg, juridiction, mediateur_id, statut }, ou null
+  // → partie + dossier { id, numero_rg, juridiction, mode, mediateur_id, statut }, ou null
 memeNom(saisi: string, attendu: string): boolean
   // comparaison sans majuscules, accents, espaces, tirets ni apostrophes
 creneauxLibres(mediateurId: string)
@@ -181,9 +299,11 @@ creneauxLibres(mediateurId: string)
 enregistrerReponse(partieId: string, reponse: ReponsePartie, creneauIds: string[])
   // → DossierRelu. Enregistre disponibilités puis coordonnées + consentement +
   //   confirme_le, puis relit le dossier. Lève une erreur si déjà confirmé.
-  //   ReponsePartie : { rempli_par: "partie" | "avocat", consentement_rgpd: true,
-  //   telephone?, email?, passer_par_avocat?, avocat_nom?, avocat_email?,
-  //   avocat_telephone?, avocat_barreau? }
+  //   ReponsePartie : { rempli_par: "partie" | "avocat", telephone?, telephone_2?,
+  //   email?, email_2?, adresse?, pref_format?, pref_lieu?, passer_par_avocat?,
+  //   avocat_nom?, avocat_email?, avocat_telephone?, avocat_barreau? }
+  //   + soit { choix?: "information" | "accepte", consentement_rgpd: true }
+  //   + soit { choix: "refuse", consentement_rgpd?: boolean } (refus)
 relireDossier(dossierId: string)
   // → DossierRelu { id, numero_rg, statut, rdv: { debut, fin } | null }
 ```
@@ -191,9 +311,13 @@ relireDossier(dossierId: string)
 ### Autres
 - `src/lib/roles.ts` : `Role`, `ACCUEIL_PAR_ROLE`, `lireRole(claims)`,
   `lireMediateurId(claims)`.
-- `src/lib/statuts.ts` : `LIBELLES_STATUT`, `LIBELLES_ROLE` (libellés français),
-  `trierParties(parties)` (demandeur d'abord : ne pas trier par ordre
-  alphabétique, « defendeur » passerait avant « demandeur »).
+- `src/lib/statuts.ts` : libellés français de **tous** les enums
+  (`LIBELLES_STATUT`, `LIBELLES_ROLE`, `LIBELLES_REMPLI_PAR`, `LIBELLES_MODE`,
+  `LIBELLES_FONCTION`, `LIBELLES_CHOIX`, `LIBELLES_PREF_FORMAT`,
+  `LIBELLES_PREF_LIEU`, `LIBELLES_RDV_FORMAT`, `LIBELLES_RDV_LIEU`,
+  `LIBELLES_ISSUE`, `LIBELLES_ACTEUR`), `trierParties(parties)` (demandeurs
+  d'abord : ne pas trier par ordre alphabétique, « defendeur » passerait avant
+  « demandeur ») et `aRepondu(partie)`.
 - `src/lib/url.ts` : `urlPartie(token)` → lien du QR code, construit avec
   `NEXT_PUBLIC_SITE_URL`. Ne jamais écrire une URL en dur ni la déduire des
   en-têtes de la requête (le QR code contiendrait `localhost`).
@@ -205,15 +329,16 @@ relireDossier(dossierId: string)
 | Personne | Rôle | Dossiers autorisés | Branche |
 | -------- | ---- | ------------------ | ------- |
 | 1 | Socle, migrations, bibliothèques partagées, déploiement. **Seule à modifier `supabase/`.** | `supabase/`, `src/lib/` (sauf `src/lib/emails/`), `src/proxy.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/connexion/`, `src/components/bouton-deconnexion.tsx`, fichiers de configuration, `CLAUDE.md`, `PROMPTS.md`, `README.md` | `main` |
-| 2 | Espace greffe | `src/app/greffe/` | `greffe` |
+| 2 | Espace juridiction | `src/app/juridiction/` | `greffe` |
 | 3 | Parcours partie | `src/app/p/[token]/` **sauf** `src/app/p/[token]/avocat/` | `partie` |
 | 4 | Tableau de bord médiateur | `src/app/mediateur/` | `mediateur` |
 | 5 | E-mails | `src/lib/emails/`, server actions d'envoi, `src/components/relance-button.tsx` | `emails` |
 | 6 | Parcours avocat | `src/app/p/[token]/avocat/` | `avocat` |
 
-Routes : `/greffe` (P2), `/p/[token]` (P3), `/mediateur` (P4),
-`/p/[token]/avocat` (P6). `/connexion` redirige vers `/greffe` ou `/mediateur`
-selon le rôle.
+Routes : `/juridiction` (P2), `/p/[token]` (P3), `/mediateur` (P4),
+`/p/[token]/avocat` (P6). `/connexion` redirige vers `/juridiction` ou
+`/mediateur` selon le rôle. Textes visibles : toujours « juridiction », jamais
+« greffe ».
 
 Points de contact :
 - P4 crée `src/components/relance-button.tsx` (composant vide), P5 le remplit.
@@ -265,7 +390,12 @@ Points de contact :
   données de démo et le dossier 26/00300 à scanner en direct. Ne touche ni aux
   comptes ni aux médiateurs. `npm run reset-demo -- --essai` : simulation.
 - `npm run lint`, `npm run typecheck`, `npm run build`
+- Base hébergée (sans Docker) : coller dans l'éditeur SQL de Supabase
+  `supabase/vider-donnees.sql` puis `supabase/seed.sql` (données de démo V2,
+  sans toucher aux comptes ni aux médiateurs existants).
+  `npm run reset-demo` ne recrée que les 3 dossiers historiques + 26/00300.
 
-Comptes de démo (mot de passe `motdepasse`) : `greffe@exemple.fr`,
-`mediateur@exemple.fr`. Jetons de démo : `demo-1-demandeur`,
-`demo-2-defendeur`, etc. (voir `README.md`).
+Comptes de démo (mot de passe `motdepasse`) : `greffe@exemple.fr` (espace
+juridiction), `mediateur@exemple.fr`. Ils sont créés en local par
+`supabase/comptes-demo.sql` ; `supabase/seed.sql` ne touche jamais aux comptes.
+Jetons de démo : `demo-1-demandeur`, `demo-5-demandeur-2`, etc. (voir le seed).

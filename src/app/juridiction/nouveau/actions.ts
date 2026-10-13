@@ -75,5 +75,5 @@ export async function creerDossier(
     return echec(`Impossible d'enregistrer les parties : ${erreurParties.message}`)
   }
 
-  redirect(`/greffe/dossiers/${cree.id}`)
+  redirect(`/juridiction/dossiers/${cree.id}`)
 }

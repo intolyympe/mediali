@@ -28,7 +28,7 @@ export async function trouverPartieParToken(token: string) {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from("parties")
-    .select("*, dossier:dossiers(id, numero_rg, juridiction, mediateur_id, statut)")
+    .select("*, dossier:dossiers(id, numero_rg, juridiction, mode, mediateur_id, statut)")
     .eq("token", token)
     .maybeSingle()
 
@@ -94,11 +94,19 @@ export async function relireDossier(dossierId: string) {
 
 export type DossierRelu = Awaited<ReturnType<typeof relireDossier>>
 
-/** Champs qu'une partie ou son avocat peut renseigner. */
+/**
+ * Champs qu'une partie ou son avocat peut renseigner. Le consentement RGPD est
+ * obligatoire, sauf si la partie refuse (choix = "refuse").
+ */
 export type ReponsePartie = Pick<
   TablesUpdate<"parties">,
   | "telephone"
+  | "telephone_2"
   | "email"
+  | "email_2"
+  | "adresse"
+  | "pref_format"
+  | "pref_lieu"
   | "passer_par_avocat"
   | "avocat_nom"
   | "avocat_email"
@@ -106,8 +114,10 @@ export type ReponsePartie = Pick<
   | "avocat_barreau"
 > & {
   rempli_par: "partie" | "avocat"
-  consentement_rgpd: true
-}
+} & (
+    | { choix?: "information" | "accepte" | null; consentement_rgpd: true }
+    | { choix: "refuse"; consentement_rgpd?: boolean }
+  )
 
 /**
  * Enregistre la réponse d'une partie (ou de son avocat) : disponibilités,

@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server"
 import { FormulaireDossier } from "./formulaire-dossier"
 
 export const metadata: Metadata = {
-  title: "Nouveau dossier — Espace greffe",
+  title: "Nouveau dossier — Espace juridiction",
 }
 
 export default function NouveauDossier() {
@@ -18,7 +18,7 @@ export default function NouveauDossier() {
         <h1 className="text-xl font-semibold">Nouveau dossier</h1>
         <Button
           variant="outline"
-          render={<Link href="/greffe" />}
+          render={<Link href="/juridiction" />}
           nativeButton={false}
         >
           Retour

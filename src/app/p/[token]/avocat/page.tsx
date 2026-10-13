@@ -24,7 +24,7 @@ export default function PageAvocat({ params }: PageProps<"/p/[token]/avocat">) {
       </Suspense>
 
       <footer className="mt-auto border-t pt-4 text-center text-base text-muted-foreground print:hidden">
-        Besoin d&apos;aide&nbsp;? Contactez le greffe.
+        Besoin d&apos;aide&nbsp;? Contactez la juridiction.
       </footer>
     </main>
   )

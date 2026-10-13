@@ -24,7 +24,7 @@ export default function PagePartie({ params }: PageProps<"/p/[token]">) {
       </Suspense>
 
       <footer className="mt-auto border-t pt-4 text-center text-base text-muted-foreground">
-        Besoin d&apos;aide&nbsp;? Contactez votre avocat ou le greffe.
+        Besoin d&apos;aide&nbsp;? Contactez votre avocat ou la juridiction.
       </footer>
     </main>
   )

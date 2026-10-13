@@ -17,21 +17,21 @@ import { createClient } from "@/lib/supabase/server"
 import { BadgeStatut } from "./badge-statut"
 
 export const metadata: Metadata = {
-  title: "Espace greffe — Médiation",
+  title: "Espace juridiction — Médiation",
 }
 
-export default function EspaceGreffe() {
+export default function EspaceJuridiction() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Espace greffe</h1>
+          <h1 className="text-xl font-semibold">Espace juridiction</h1>
           <Suspense>
             <CompteConnecte />
           </Suspense>
         </div>
         <div className="flex gap-2">
-          <Button render={<Link href="/greffe/nouveau" />} nativeButton={false}>
+          <Button render={<Link href="/juridiction/nouveau" />} nativeButton={false}>
             Nouveau dossier
           </Button>
           <BoutonDeconnexion />
@@ -61,7 +61,7 @@ async function ListeDossiers() {
   const supabase = await createClient()
   const { data: dossiers, error } = await supabase
     .from("dossiers")
-    .select("id, numero_rg, juridiction, statut, mediateurs (nom)")
+    .select("id, numero_rg, juridiction, statut, mediateurs!dossiers_mediateur_id_fkey (nom)")
     .order("created_at", { ascending: false })
 
   if (error) {
@@ -91,7 +91,7 @@ async function ListeDossiers() {
           <TableRow key={dossier.id}>
             <TableCell className="font-medium">
               <Link
-                href={`/greffe/dossiers/${dossier.id}`}
+                href={`/juridiction/dossiers/${dossier.id}`}
                 className="underline underline-offset-4"
               >
                 {dossier.numero_rg}

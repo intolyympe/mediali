@@ -13,10 +13,10 @@ import { BadgeStatut } from "../../badge-statut"
 import { BoutonImprimer, QRCodeSVG } from "./client"
 
 export const metadata: Metadata = {
-  title: "Dossier — Espace greffe",
+  title: "Dossier — Espace juridiction",
 }
 
-export default function PageDossier({ params }: PageProps<"/greffe/dossiers/[id]">) {
+export default function PageDossier({ params }: PageProps<"/juridiction/dossiers/[id]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 md:p-8 print:max-w-none print:p-0">
       <Suspense
@@ -30,13 +30,13 @@ export default function PageDossier({ params }: PageProps<"/greffe/dossiers/[id]
 
 async function DetailDossier({
   params,
-}: Pick<PageProps<"/greffe/dossiers/[id]">, "params">) {
+}: Pick<PageProps<"/juridiction/dossiers/[id]">, "params">) {
   const { id } = await params
   const supabase = await createClient()
   const { data: dossier } = await supabase
     .from("dossiers")
     .select(
-      "numero_rg, juridiction, statut, mediateurs (nom), parties (id, role, nom, prenom, token)"
+      "numero_rg, juridiction, statut, mediateurs!dossiers_mediateur_id_fkey (nom), parties (id, role, nom, prenom, token)"
     )
     .eq("id", id)
     .maybeSingle()
@@ -59,7 +59,7 @@ async function DetailDossier({
         <div className="flex gap-2">
           <Button
             variant="outline"
-            render={<Link href="/greffe" />}
+            render={<Link href="/juridiction" />}
             nativeButton={false}
           >
             Retour

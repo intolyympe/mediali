@@ -38,7 +38,7 @@ export async function seConnecter(
   if (!role) {
     await supabase.auth.signOut()
     return {
-      erreur: "Ce compte n'a pas encore de rôle (greffe ou médiateur). Contactez l'administrateur.",
+      erreur: "Ce compte n'a pas encore de rôle (juridiction ou médiateur). Contactez l'administrateur.",
       email,
     }
   }

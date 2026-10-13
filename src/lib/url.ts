@@ -1,5 +1,5 @@
 // Adresse publique du site (QR codes, liens des e-mails). Jamais déduite de la
-// requête : en local, le poste du greffe est sur localhost, mais le téléphone
+// requête : en local, le poste de la juridiction est sur localhost, mais le téléphone
 // qui scanne le QR code doit pouvoir ouvrir le lien.
 //   Local      : NEXT_PUBLIC_SITE_URL=http://localhost:3000
 //   Production : NEXT_PUBLIC_SITE_URL=https://<projet>.vercel.app

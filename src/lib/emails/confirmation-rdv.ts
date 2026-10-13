@@ -29,8 +29,8 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
       .select(
         `numero_rg,
          rdv:creneaux!dossiers_rdv_creneau_id_fkey(debut, fin),
-         mediateur:mediateurs(nom, email, telephone),
-         parties(nom, prenom, email, passer_par_avocat, avocat_email)`
+         mediateur:mediateurs!dossiers_mediateur_id_fkey(nom, email, telephone),
+         parties(nom, prenom, email, passer_par_avocat, avocat_email, choix)`
       )
       .eq("id", dossierId)
       .single()
@@ -58,6 +58,9 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
     const emails: Email[] = []
 
     for (const partie of parties) {
+      // Une partie qui a refusé ne participe pas au rendez-vous
+      if (partie.choix === "refuse") continue
+
       const viaAvocat = partie.passer_par_avocat && partie.avocat_email
       const destinataire = viaAvocat ? partie.avocat_email : (partie.email ?? partie.avocat_email)
       if (!destinataire) continue

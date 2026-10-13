@@ -9,9 +9,9 @@ import type { Database } from "./database.types"
 // pages des QR codes
 const CHEMINS_PUBLICS = ["/connexion", "/p/"]
 
-// Espaces réservés à un rôle
+// Espaces réservés à un rôle (le rôle technique "greffe" → espace juridiction)
 const ESPACES: Record<Role, string> = {
-  greffe: "/greffe",
+  greffe: "/juridiction",
   mediateur: "/mediateur",
 }
 
@@ -24,7 +24,7 @@ function estDansEspace(chemin: string, espace: string) {
 }
 
 // Rafraîchit la session Supabase à chaque requête et oriente chaque compte
-// vers son espace (greffe ou médiateur).
+// vers son espace (juridiction ou médiateur).
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
 

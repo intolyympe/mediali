@@ -14,7 +14,7 @@ export type ResultatRelance = {
 /**
  * Bouton « Relancer » : envoie le lien du QR code (/p/<token>) aux parties
  * pas encore confirmées dont un e-mail est connu (partie et/ou avocat).
- * Réservé au greffe et au médiateur du dossier.
+ * Réservé à la juridiction et au médiateur du dossier.
  */
 export async function relancerParties(dossierId: string): Promise<ResultatRelance> {
   const supabase = await createClient()
