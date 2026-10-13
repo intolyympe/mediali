@@ -11,9 +11,11 @@ import { changerProvision } from "./actions"
 export function InterrupteurProvision({
   dossierId,
   initial,
+  desactive = false,
 }: {
   dossierId: string
   initial: boolean
+  desactive?: boolean
 }) {
   const [consignee, setConsignee] = useState(initial)
   const [enCours, startTransition] = useTransition()
@@ -31,7 +33,7 @@ export function InterrupteurProvision({
 
   return (
     <Label className="flex items-center gap-3">
-      <Switch checked={consignee} onCheckedChange={changer} disabled={enCours} />
+      <Switch checked={consignee} onCheckedChange={changer} disabled={enCours || desactive} />
       Provision consignée
     </Label>
   )

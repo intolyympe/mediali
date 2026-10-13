@@ -5,16 +5,16 @@ import { BoutonDeconnexion } from "@/components/bouton-deconnexion"
 import { lireMediateurId } from "@/lib/roles"
 import { createClient } from "@/lib/supabase/server"
 
-import { SELECT_DOSSIERS } from "./donnees"
+import { filtreIntervenant, SELECT_DOSSIERS } from "./donnees"
 import { TableauDeBord } from "./tableau-de-bord"
 
 export const metadata: Metadata = {
-  title: "Espace médiateur — Médiation",
+  title: "Espace médiateur — Médialien",
 }
 
 export default function EspaceMediateur() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-8">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8">
       <Suspense
         fallback={<p className="text-sm text-muted-foreground">Chargement…</p>}
       >
@@ -41,20 +41,24 @@ async function ContenuEspaceMediateur() {
     )
   }
 
-  // Le médiateur ne voit que les dossiers qui lui sont confiés
-  const { data: dossiers, error } = await supabase
-    .from("dossiers")
-    .select(SELECT_DOSSIERS)
-    .eq("mediateur_id", mediateurId)
-    .order("created_at", { ascending: false })
+  // Dossiers où il est intervenant principal ou co-médiateur
+  const [{ data: dossiers, error }, { data: intervenant }] = await Promise.all([
+    supabase
+      .from("dossiers")
+      .select(SELECT_DOSSIERS)
+      .or(filtreIntervenant(mediateurId))
+      .order("created_at", { ascending: false }),
+    supabase.from("mediateurs").select("nom, fonction").eq("id", mediateurId).maybeSingle(),
+  ])
+  const conciliateur = intervenant?.fonction === "conciliateur"
 
   return (
     <>
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Espace médiateur</h1>
+          <h1 className="text-3xl font-bold">Mes dossiers</h1>
           <p className="text-sm text-muted-foreground">
-            Connecté en tant que {claims?.claims.email}
+            Espace {conciliateur ? "conciliateur" : "médiateur"} · {intervenant?.nom ?? claims?.claims.email}
           </p>
         </div>
         <BoutonDeconnexion />
