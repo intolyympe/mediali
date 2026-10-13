@@ -5,6 +5,7 @@ import { creneauxLibres, trouverPartieParToken } from "@/lib/dossiers"
 
 import { grouperParJour } from "./dates"
 import { ParcoursPartie } from "./parcours-partie"
+import { vocabulaire } from "./vocabulaire"
 
 export const metadata: Metadata = {
   title: "Vos coordonnées — Médiation",
@@ -15,10 +16,6 @@ export const metadata: Metadata = {
 export default function PagePartie({ params }: PageProps<"/p/[token]">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-4 py-6">
-      <p className="text-sm font-medium text-muted-foreground">
-        Médiation — Cour d&apos;appel de Saint-Denis
-      </p>
-
       <Suspense fallback={<p className="text-lg">Chargement…</p>}>
         <ContenuPagePartie params={params} />
       </Suspense>
@@ -43,13 +40,24 @@ async function ContenuPagePartie({ params }: Pick<PageProps<"/p/[token]">, "para
     )
   }
 
+  const mots = vocabulaire(partie.dossier.mode)
+
   if (partie.confirme_le) {
+    if (partie.choix === "refuse") {
+      return (
+        <Message titre="Vous avez déjà répondu">
+          Votre refus de {mots.laProcedure} a été enregistré. Le juge en sera informé. Vous
+          n&apos;avez rien d&apos;autre à faire.
+        </Message>
+      )
+    }
     return (
       <Message titre="Vous avez déjà répondu">
         {partie.rempli_par === "avocat"
-          ? "Votre avocat a déjà transmis vos informations au médiateur."
-          : "Vos informations ont bien été transmises au médiateur."}{" "}
-        Le médiateur vous contactera prochainement. Vous n&apos;avez rien d&apos;autre à faire.
+          ? `Votre avocat a déjà transmis vos informations ${mots.auTiers}.`
+          : `Vos informations ont bien été transmises ${mots.auTiers}.`}{" "}
+        {mots.leTiers.charAt(0).toUpperCase() + mots.leTiers.slice(1)} vous contactera
+        prochainement. Vous n&apos;avez rien d&apos;autre à faire.
       </Message>
     )
   }
@@ -64,6 +72,7 @@ async function ContenuPagePartie({ params }: Pick<PageProps<"/p/[token]">, "para
     <ParcoursPartie
       token={token}
       numeroRg={partie.dossier.numero_rg}
+      mode={partie.dossier.mode}
       jours={grouperParJour(creneaux)}
     />
   )

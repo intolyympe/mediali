@@ -21,20 +21,44 @@ export function normaliserTelephone(saisi: string) {
   return `0${correspondance[1]}`.replace(/(\d{2})(?=\d)/g, "$1 ")
 }
 
-export type ErreursCoordonnees = { telephone?: string; email?: string }
+export type Coordonnees = {
+  telephone: string
+  email: string
+  telephone_2: string
+  email_2: string
+  adresse: string
+}
 
-/** Le téléphone est obligatoire, l'e-mail facultatif. */
-export function verifierCoordonnees(telephone: string, email: string) {
+export type ErreursCoordonnees = Partial<Record<keyof Coordonnees | "general", string>>
+
+const ADRESSE_MAX = 300
+
+/**
+ * Au moins un téléphone ou une adresse e-mail. Les autres moyens de contact
+ * sont facultatifs mais vérifiés s'ils sont remplis.
+ */
+export function verifierCoordonnees(coordonnees: Coordonnees) {
   const erreurs: ErreursCoordonnees = {}
+  const telephoneInvalide = (valeur: string) => valeur.trim() !== "" && !normaliserTelephone(valeur)
+  const emailInvalide = (valeur: string) => valeur.trim() !== "" && !EMAIL.test(valeur.trim())
 
-  if (!telephone.trim()) {
-    erreurs.telephone = "Indiquez votre numéro de téléphone."
-  } else if (!normaliserTelephone(telephone)) {
+  if (!coordonnees.telephone.trim() && !coordonnees.email.trim()) {
+    erreurs.general = "Indiquez au moins un numéro de téléphone ou une adresse e-mail."
+  }
+  if (telephoneInvalide(coordonnees.telephone)) {
     erreurs.telephone = "Ce numéro n'est pas valide. Exemple : 0692 12 34 56."
   }
-
-  if (email.trim() && !EMAIL.test(email.trim())) {
+  if (emailInvalide(coordonnees.email)) {
     erreurs.email = "Cette adresse e-mail n'est pas valide. Exemple : nom@exemple.fr."
+  }
+  if (telephoneInvalide(coordonnees.telephone_2)) {
+    erreurs.telephone_2 = "Ce numéro n'est pas valide. Exemple : 0262 12 34 56."
+  }
+  if (emailInvalide(coordonnees.email_2)) {
+    erreurs.email_2 = "Cette adresse e-mail n'est pas valide. Exemple : nom@exemple.fr."
+  }
+  if (coordonnees.adresse.trim().length > ADRESSE_MAX) {
+    erreurs.adresse = "Cette adresse est trop longue."
   }
 
   return erreurs
