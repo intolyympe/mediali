@@ -1,10 +1,11 @@
 "use server"
 
 import { lireMediateurId, lireRole } from "@/lib/roles"
+import { aRepondu } from "@/lib/statuts"
 import { createClient } from "@/lib/supabase/server"
 import { urlPartie } from "@/lib/url"
 
-import { envoyerEmails, miseEnForme, type Email } from "./envoyer"
+import { envoyerEmails, miseEnForme, vocabulaire, type Email } from "./envoyer"
 
 export type ResultatRelance = {
   envoyes: number
@@ -24,7 +25,7 @@ export async function relancerParties(dossierId: string): Promise<ResultatRelanc
 
   const { data: dossier, error } = await supabase
     .from("dossiers")
-    .select("numero_rg, mediateur_id, parties(token, email, avocat_email, consentement_rgpd, confirme_le)")
+    .select("numero_rg, mode, mediateur_id, parties(token, email, avocat_email, consentement_rgpd, confirme_le, choix)")
     .eq("id", dossierId)
     .maybeSingle()
 
@@ -34,27 +35,30 @@ export async function relancerParties(dossierId: string): Promise<ResultatRelanc
     return { envoyes: 0, erreur: "Ce dossier ne vous est pas confié." }
   }
 
+  const mots = vocabulaire(dossier.mode)
   const emails: Email[] = []
   for (const partie of dossier.parties) {
-    if (partie.consentement_rgpd && partie.confirme_le) continue
+    // Déjà répondu (y compris un refus) : pas de relance
+    if (aRepondu(partie)) continue
 
     const lien = urlPartie(partie.token)
     const destinataires = new Set([partie.email, partie.avocat_email].filter((e) => e))
     for (const destinataire of destinataires) {
       emails.push({
         a: destinataire!,
-        sujet: `Médiation – dossier n° ${dossier.numero_rg} : vos coordonnées`,
+        sujet: `${mots.Procedure} – dossier n° ${dossier.numero_rg} : vos coordonnées`,
         texte: miseEnForme(
           [
             "Bonjour,",
             "",
-            `Un médiateur a été désigné par le juge dans le dossier n° ${dossier.numero_rg}.`,
+            `Un ${mots.tiers} a été désigné par le juge dans le dossier n° ${dossier.numero_rg}.`,
             "Pour qu'il puisse vous contacter, merci de transmettre vos coordonnées et vos disponibilités en suivant ce lien :",
             "",
             lien,
             "",
             "Si vous êtes l'avocat de cette partie, le même lien vous permet de répondre pour votre client.",
-          ].join("\n")
+          ].join("\n"),
+          dossier.mode
         ),
       })
     }

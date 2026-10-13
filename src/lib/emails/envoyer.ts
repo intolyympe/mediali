@@ -1,5 +1,7 @@
 import "server-only"
 
+import type { Enums } from "@/lib/supabase/database.types"
+
 // Envoi d'e-mails en texte simple avec l'API Resend (https://resend.com/docs).
 // Sans RESEND_API_KEY (développement local), les e-mails sont affichés dans la
 // console au lieu d'être envoyés.
@@ -10,16 +12,25 @@ export type Email = {
   texte: string
 }
 
-const EN_TETE = "Médiation – Cour d'appel de Saint-Denis"
-
 // Adresse d'expédition : doit appartenir à un domaine vérifié sur Resend.
 // onboarding@resend.dev ne peut écrire qu'à l'adresse du compte Resend.
 const EXPEDITEUR =
-  process.env.EMAIL_EXPEDITEUR || "Médiation Saint-Denis <onboarding@resend.dev>"
+  process.env.EMAIL_EXPEDITEUR || "Médialien – Cour d'appel de Saint-Denis <onboarding@resend.dev>"
+
+/**
+ * Vocabulaire des e-mails selon dossiers.mode :
+ * « médiation » / « conciliation », « médiateur » / « conciliateur ».
+ */
+export function vocabulaire(mode: Enums<"mode_amiable">) {
+  return mode === "conciliation"
+    ? { procedure: "conciliation", Procedure: "Conciliation", tiers: "conciliateur", Tiers: "Conciliateur" }
+    : { procedure: "médiation", Procedure: "Médiation", tiers: "médiateur", Tiers: "Médiateur" }
+}
 
 /** Ajoute l'en-tête et la mention de bas de page communs à tous les e-mails. */
-export function miseEnForme(corps: string) {
-  return `${EN_TETE}\n\n${corps}\n\n--\nMessage automatique, merci de ne pas y répondre.`
+export function miseEnForme(corps: string, mode: Enums<"mode_amiable">) {
+  const enTete = `${vocabulaire(mode).Procedure} – Cour d'appel de Saint-Denis`
+  return `${enTete}\n\n${corps}\n\n--\nMessage automatique, merci de ne pas y répondre.`
 }
 
 /**

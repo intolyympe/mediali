@@ -2,7 +2,7 @@ import "server-only"
 
 import { createAdminClient } from "@/lib/supabase/admin"
 
-import { envoyerEmails, miseEnForme, type Email } from "./envoyer"
+import { envoyerEmails, miseEnForme, vocabulaire, type Email } from "./envoyer"
 
 const formatJour = new Intl.DateTimeFormat("fr-FR", {
   dateStyle: "full",
@@ -15,7 +15,8 @@ const formatHeure = new Intl.DateTimeFormat("fr-FR", {
 
 /**
  * Envoie l'e-mail de confirmation du rendez-vous à chaque partie (ou à son
- * avocat si passer_par_avocat est vrai) et au médiateur.
+ * avocat si passer_par_avocat est vrai) et au médiateur ou conciliateur.
+ * Le vocabulaire suit dossiers.mode (médiation ou conciliation).
  *
  * Appelée par enregistrerReponse (src/lib/dossiers.ts) quand le dossier vient
  * de passer en rdv_fixe. Ne lève jamais d'erreur : un échec d'envoi ne doit
@@ -27,7 +28,7 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
     const { data: dossier, error } = await supabase
       .from("dossiers")
       .select(
-        `numero_rg,
+        `numero_rg, mode,
          rdv:creneaux!dossiers_rdv_creneau_id_fkey(debut, fin),
          mediateur:mediateurs!dossiers_mediateur_id_fkey(nom, email, telephone),
          parties(nom, prenom, email, passer_par_avocat, avocat_email, choix)`
@@ -38,10 +39,11 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
     if (error) throw error
     if (!dossier.rdv) return
 
-    const { numero_rg, rdv, mediateur, parties } = dossier
+    const { numero_rg, mode, rdv, mediateur, parties } = dossier
+    const mots = vocabulaire(mode)
     const date = formatJour.format(new Date(rdv.debut))
     const heure = `${formatHeure.format(new Date(rdv.debut))} – ${formatHeure.format(new Date(rdv.fin))}`
-    const sujet = `Rendez-vous de médiation fixé – dossier n° ${numero_rg}`
+    const sujet = `Rendez-vous de ${mots.procedure} fixé – dossier n° ${numero_rg}`
 
     const lignesRdv = [
       `Dossier n° ${numero_rg}`,
@@ -50,7 +52,7 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
     ]
     const lignesMediateur = mediateur
       ? [
-          `Médiateur : ${mediateur.nom}`,
+          `${mots.Tiers} : ${mediateur.nom}`,
           `Contact : ${[mediateur.email, mediateur.telephone].filter(Boolean).join(" – ")}`,
         ]
       : []
@@ -66,8 +68,8 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
       if (!destinataire) continue
 
       const introduction = viaAvocat
-        ? `Le premier rendez-vous de médiation de votre client, ${partie.prenom} ${partie.nom}, est fixé.`
-        : "Votre premier rendez-vous de médiation est fixé."
+        ? `Le premier rendez-vous de ${mots.procedure} de votre client, ${partie.prenom} ${partie.nom}, est fixé.`
+        : `Votre premier rendez-vous de ${mots.procedure} est fixé.`
 
       emails.push({
         a: destinataire,
@@ -81,8 +83,9 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
             ...lignesRdv,
             ...lignesMediateur,
             "",
-            "En cas d'empêchement, contactez le médiateur au plus tôt.",
-          ].join("\n")
+            `En cas d'empêchement, contactez le ${mots.tiers} au plus tôt.`,
+          ].join("\n"),
+          mode
         ),
       })
     }
@@ -95,12 +98,13 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
           [
             "Bonjour,",
             "",
-            "Les deux parties ont confirmé leurs coordonnées et un rendez-vous a été fixé automatiquement.",
+            "Toutes les parties ont répondu et un premier rendez-vous a été fixé automatiquement.",
             "",
             ...lignesRdv,
             "",
-            "Les coordonnées des parties sont disponibles dans votre espace médiateur.",
-          ].join("\n")
+            "Les coordonnées des parties sont disponibles dans votre espace Médialien.",
+          ].join("\n"),
+          mode
         ),
       })
     }

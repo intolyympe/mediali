@@ -39,48 +39,71 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  /* Coins presque droits (DSFR) : 4px au maximum */
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
+  /* Couleurs DSFR supplémentaires (classes bg-primary-hover, text-succes…) */
+  --color-primary-hover: var(--primary-hover);
+  --color-succes: var(--succes);
+  --color-avertissement: var(--avertissement);
+  --color-information: var(--information);
+  --color-focus: var(--focus);
 }
 
+/*
+ * Charte DSFR (Système de Design de l'État) appliquée aux variables de shadcn.
+ * Contrastes vérifiés (RGAA) : texte ≥ 4,5:1, bordures de champs et focus ≥ 3:1.
+ * Voir CLAUDE.md, section « Charte DSFR ».
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #ffffff;
+  --foreground: #161616;
+  --card: #ffffff;
+  --card-foreground: #161616;
+  --popover: #ffffff;
+  --popover-foreground: #161616;
+  /* Bleu France : boutons principaux, liens, éléments actifs */
+  --primary: #000091;
+  --primary-foreground: #ffffff;
+  --primary-hover: #1212ff;
+  /* Fond alterné */
+  --secondary: #f6f6f6;
+  --secondary-foreground: #000091;
+  --muted: #f6f6f6;
+  --muted-foreground: #3a3a3a;
+  --accent: #f6f6f6;
+  --accent-foreground: #161616;
+  /* Rouge Marianne : uniquement pour les erreurs */
+  --destructive: #e1000f;
+  --succes: #18753c;
+  --avertissement: #b34000;
+  --information: #0063cb;
+  /* Bordures décoratives (cartes, séparateurs) */
+  --border: #dddddd;
+  /* Bordures des champs et cases à cocher : #DDDDDD n'atteint pas 3:1 */
+  --input: #666666;
+  /* Contour de focus clavier (DSFR) */
+  --focus: #0a76f6;
+  --ring: #0a76f6;
+  --chart-1: #000091;
+  --chart-2: #0063cb;
+  --chart-3: #18753c;
+  --chart-4: #b34000;
+  --chart-5: #3a3a3a;
+  --radius: 0.25rem;
+  --sidebar: #f6f6f6;
+  --sidebar-foreground: #161616;
+  --sidebar-primary: #000091;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e3e3fd;
+  --sidebar-accent-foreground: #000091;
+  --sidebar-border: #dddddd;
+  --sidebar-ring: #0a76f6;
 }
 
 .dark {
@@ -119,7 +142,10 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+  a {
+    text-underline-offset: 0.2em;
   }
   body {
     @apply bg-background text-foreground;
@@ -127,4 +153,29 @@
   html {
     @apply font-sans;
   }
+}
+/*
+ * Focus clavier bien visible partout (RGAA) : contour bleu de 2px décalé de
+ * 2px, comme le DSFR. Hors de tout @layer pour passer devant les classes
+ * `outline-none` des composants shadcn.
+ */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Lien d'évitement « Aller au contenu » : visible seulement au clavier */
+.lien-evitement {
+  position: absolute;
+  left: 1rem;
+  top: -100%;
+  z-index: 50;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  color: var(--primary);
+  font-weight: 500;
+  text-decoration: underline;
+}
+.lien-evitement:focus {
+  top: 0.5rem;
 }

@@ -78,6 +78,87 @@ Le modèle de données actuel est décrit dans **Modèle V2** ci-dessous.
   (`rm -rf .next`) et relancer.
 - Avant de coder avec une API Next.js, consulter `node_modules/next/dist/docs/`.
 
+## Charte DSFR
+
+L'apparence suit le **Système de Design de l'État** (DSFR) : service
+« **Médialien** — Médiation et conciliation judiciaires », Cour d'appel de
+Saint-Denis de La Réunion.
+
+### Mise en place (ne pas casser)
+- Paquet officiel `@gouvfr/dsfr` : on n'utilise **que la police Marianne**
+  (`next/font/local` dans `src/app/layout.tsx`, fichiers de
+  `node_modules/@gouvfr/dsfr/dist/fonts/`). **Ne pas importer le CSS du DSFR**
+  ni ses classes `fr-*` : il casserait les composants shadcn.
+- Son installation exige l'acceptation de ses modalités d'utilisation :
+  `.dsfr.yml` (`accept-license: 1.0.1`) **doit rester commité**, sinon
+  `npm install` échoue, y compris sur Vercel. Si une mise à jour du paquet
+  change de version de CGU, l'installation échoue : un humain relit et accepte
+  la nouvelle version, Claude ne le fait jamais seul.
+- Le DSFR est réservé aux services de l'État : la mention « Prototype –
+  Hackathon Justice Tech » de l'en-tête et du pied de page doit rester
+  (pas de confusion avec un service officiel). Bloc-marque en texte seul,
+  jamais d'image du logo officiel.
+- `src/app/layout.tsx` affiche pour toutes les pages le lien d'évitement
+  « Aller au contenu », `<EnTete />` (`src/components/dsfr/header.tsx`) et
+  `<PiedDePage />` (`src/components/dsfr/footer.tsx`). Les pages ne
+  recréent pas d'en-tête de site : elles commencent par leur `<main>`.
+- `button.tsx`, `input.tsx` et `native-select.tsx` de `src/components/ui/` ont
+  été retouchés pour la charte (variantes et hauteur 40px). Ne jamais lancer
+  `npx shadcn@latest add … --overwrite` sur ces fichiers : cela effacerait la
+  charte. Les nouveaux composants shadcn héritent des couleurs automatiquement.
+
+### Couleurs (variables de `src/app/globals.css`)
+| Rôle | Valeur | Classes Tailwind |
+| ---- | ------ | ---------------- |
+| Bleu France (primaire, liens, actifs) | `#000091` | `bg-primary`, `text-primary`, `border-primary` |
+| Survol du primaire | `#1212FF` | `hover:bg-primary-hover` |
+| Rouge Marianne (**erreurs uniquement**) | `#E1000F` | `text-destructive`, `bg-destructive` |
+| Texte | `#161616` | `text-foreground` |
+| Texte secondaire | `#3A3A3A` | `text-muted-foreground` |
+| Fond / fond alterné | `#FFFFFF` / `#F6F6F6` | `bg-background` / `bg-muted` |
+| Bordures décoratives | `#DDDDDD` | `border-border` (défaut) |
+| Bordures des champs | `#666666` | `border-input` |
+| Succès / avertissement / information | `#18753C` / `#B34000` / `#0063CB` | `text-succes`, `text-avertissement`, `text-information` |
+| Focus clavier | `#0A76F6` | automatique |
+
+Coins presque droits : toutes les classes `rounded-*` valent 4px au maximum
+(`rounded-full` reste rond : à réserver aux puces).
+
+### Composants à utiliser
+- `Button` (`@/components/ui/button`) : `default` = bouton principal (bleu
+  plein, une seule action principale par écran), `outline` ou `secondary` =
+  bouton secondaire (contour bleu), `ghost` = tertiaire (texte bleu),
+  `destructive` = suppression irréversible uniquement, `link` = lien.
+  Hauteur 40px par défaut (`size="lg"` : 48px pour les pages publiques).
+- `Input`, `NativeSelect`, `Checkbox`, `Label` de `@/components/ui`.
+- `src/components/dsfr/statut-badge.tsx` : `<BadgeStatut statut={…} />`,
+  `<BadgeIssue issue={…} />`, et `<BadgeDsfr type="information" |
+  "avertissement" | "succes" | "neutre" | "erreur">texte</BadgeDsfr>`.
+  Correspondances : en attente → neutre, partiellement joignable →
+  avertissement, joignable → information, RDV fixé → succès ; accord total ou
+  partiel → succès, carence → avertissement, échec ou refus → erreur.
+  À utiliser à la place des badges colorés à la main
+  (`src/app/juridiction/badge-statut.tsx`, `COULEURS_STATUT` de
+  `src/app/mediateur/donnees.ts` : à remplacer par leurs propriétaires).
+- `src/components/timeline.tsx` : `<Timeline evenements={…} />` affiche les
+  lignes de `evenements` (date et heure de La Réunion, acteur, libellé,
+  `detail` facultatif). Il ne fait **aucune requête** : la page lit les
+  événements (et s'abonne au temps réel si besoin) puis les passe en props.
+  Options : `plusRecentEnPremier`, `titre` (nom lu par les lecteurs d'écran).
+
+### Règles (RGAA)
+- Pas de couleurs Tailwind codées en dur (`gray-200`, `orange-100`,
+  `green-600`, `blue-500`…) : uniquement les variables ci-dessus.
+- Rouge Marianne réservé aux erreurs. La couleur ne porte jamais seule une
+  information : un badge ou une pastille a toujours un texte.
+- Contrastes : texte ≥ 4,5:1, bordures de champs et focus ≥ 3:1 (palette
+  vérifiée). Ne pas mettre de texte gris clair ni de texte coloré sur un fond
+  coloré non prévu par `BadgeDsfr`.
+- Focus clavier : contour bleu de 2px défini globalement (`:focus-visible`
+  dans `globals.css`). Ne jamais le masquer.
+- Liens soulignés ; zones cliquables d'au moins 40px de haut.
+- Toujours un `<h1>` par page et des `<Label>` reliés aux champs.
+
 ## Schéma de la base
 
 Migrations dans `supabase/migrations/` (voir aussi
