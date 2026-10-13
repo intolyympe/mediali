@@ -13,9 +13,9 @@ export const metadata: Metadata = {
 
 export default function NouveauDossier() {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 md:p-8">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Nouveau dossier</h1>
+        <h1 className="text-3xl font-bold">Nouveau dossier</h1>
         <Button
           variant="outline"
           render={<Link href="/juridiction" />}
@@ -35,18 +35,18 @@ export default function NouveauDossier() {
 
 async function ChargerFormulaire() {
   const supabase = await createClient()
-  const { data: mediateurs, error } = await supabase
+  const { data: intervenants, error } = await supabase
     .from("mediateurs")
-    .select("id, nom")
+    .select("id, nom, fonction")
     .order("nom")
 
   if (error) {
     return (
       <p role="alert" className="text-sm text-destructive">
-        Impossible de charger les médiateurs : {error.message}
+        Impossible de charger les médiateurs et conciliateurs : {error.message}
       </p>
     )
   }
 
-  return <FormulaireDossier mediateurs={mediateurs} />
+  return <FormulaireDossier intervenants={intervenants} />
 }
