@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import type { RealtimeChannel } from "@supabase/supabase-js"
+
 import { createClient } from "@/lib/supabase/client"
 
 // qrcode.react utilise des hooks : il doit être rendu côté client.
@@ -30,15 +32,26 @@ export function ActualisationTempsReel({ dossierId }: { dossierId: string }) {
   useEffect(() => {
     const supabase = createClient()
     const rafraichir = () => router.refresh()
-    const canal = supabase
-      .channel(`juridiction-dossier-${dossierId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "evenements", filter: `dossier_id=eq.${dossierId}` }, rafraichir)
-      .on("postgres_changes", { event: "*", schema: "public", table: "parties", filter: `dossier_id=eq.${dossierId}` }, rafraichir)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "dossiers", filter: `id=eq.${dossierId}` }, rafraichir)
-      .subscribe((statut) => setConnecte(statut === "SUBSCRIBED"))
+    let canal: RealtimeChannel | null = null
+    let actif = true
+
+    async function abonner() {
+      // Charger le jeton de session AVANT de s'abonner : sinon l'abonnement est
+      // anonyme et la RLS (réservée aux connectés) filtre tous les événements.
+      await supabase.realtime.setAuth()
+      if (!actif) return
+      canal = supabase
+        .channel(`juridiction-dossier-${dossierId}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "evenements", filter: `dossier_id=eq.${dossierId}` }, rafraichir)
+        .on("postgres_changes", { event: "*", schema: "public", table: "parties", filter: `dossier_id=eq.${dossierId}` }, rafraichir)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "dossiers", filter: `id=eq.${dossierId}` }, rafraichir)
+        .subscribe((statut) => setConnecte(statut === "SUBSCRIBED"))
+    }
+    abonner()
 
     return () => {
-      supabase.removeChannel(canal)
+      actif = false
+      if (canal) supabase.removeChannel(canal)
     }
   }, [dossierId, router])
 

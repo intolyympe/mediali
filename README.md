@@ -85,11 +85,13 @@ npm run reset-demo -- --essai   # simulation : affiche ce qui serait fait
 npm run reset-demo              # vide et recrée les données de démo
 ```
 
-Le script utilise la clé service_role de `.env.local`. Il supprime tous les
-dossiers, parties, disponibilités et créneaux, recrée 10 créneaux sur les
-prochains jours ouvrés, les 3 dossiers ci-dessus et le dossier **26/00300**
-(en attente, à scanner en direct), puis affiche ses liens `/p/...`. Il ne
-touche ni aux comptes utilisateurs ni aux médiateurs.
+Le script utilise la clé service_role de `.env.local`. Il vide les
+événements, disponibilités, parties, dossiers et créneaux, recrée exactement
+les 7 dossiers de démo ci-dessus (avec leur timeline) et ajoute le dossier
+**26/00300** en attente, à scanner en direct (Marie Payet / Jean Hoarau), puis
+affiche ses deux liens `/p/...`. Il ne touche ni aux comptes utilisateurs ni
+aux médiateurs. Lancez-le juste avant la démo, avec l'adresse de production :
+`NEXT_PUBLIC_SITE_URL=https://<projet>.vercel.app npm run reset-demo`.
 
 Supabase Studio (interface d'administration de la base) : http://127.0.0.1:54323.
 Les e-mails envoyés en local sont visibles sur http://127.0.0.1:54324.

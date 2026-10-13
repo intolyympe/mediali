@@ -28,7 +28,7 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
     const { data: dossier, error } = await supabase
       .from("dossiers")
       .select(
-        `numero_rg, mode,
+        `numero_rg, mode, rdv_format, rdv_lieu,
          rdv:creneaux!dossiers_rdv_creneau_id_fkey(debut, fin),
          mediateur:mediateurs!dossiers_mediateur_id_fkey(nom, email, telephone),
          parties(nom, prenom, email, passer_par_avocat, avocat_email, choix)`
@@ -39,7 +39,7 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
     if (error) throw error
     if (!dossier.rdv) return
 
-    const { numero_rg, mode, rdv, mediateur, parties } = dossier
+    const { numero_rg, mode, rdv_format, rdv_lieu, rdv, mediateur, parties } = dossier
     const mots = vocabulaire(mode)
     const date = formatJour.format(new Date(rdv.debut))
     const heure = `${formatHeure.format(new Date(rdv.debut))} – ${formatHeure.format(new Date(rdv.fin))}`
@@ -49,6 +49,9 @@ export async function envoyerConfirmationsRdv(dossierId: string) {
       `Dossier n° ${numero_rg}`,
       `Date : ${date}`,
       `Heure : ${heure} (heure de La Réunion)`,
+      // Renseignés par le médiateur quand il confirme le rendez-vous
+      ...(rdv_format ? [`Format : parties reçues ${rdv_format === "ensemble" ? "ensemble" : "séparément"}`] : []),
+      ...(rdv_lieu ? [`Lieu : ${rdv_lieu === "presentiel" ? "en personne" : "à distance (visio ou téléphone)"}`] : []),
     ]
     const lignesMediateur = mediateur
       ? [

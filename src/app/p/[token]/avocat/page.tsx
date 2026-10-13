@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import { creneauxLibres, trouverPartieParToken } from "@/lib/dossiers"
 
 import { grouperParJour } from "../dates"
+import { vocabulaire } from "../vocabulaire"
 import { ParcoursAvocat } from "./parcours-avocat"
 
 export const metadata: Metadata = {
@@ -15,8 +16,8 @@ export const metadata: Metadata = {
 export default function PageAvocat({ params }: PageProps<"/p/[token]/avocat">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-4 py-6">
-      <p className="text-sm font-medium text-muted-foreground">
-        Médiation — Cour d&apos;appel de Saint-Denis · Espace avocat
+      <p className="self-start rounded-sm bg-secondary px-2 py-1 text-sm font-bold text-primary uppercase print:hidden">
+        Espace avocat
       </p>
 
       <Suspense fallback={<p className="text-lg">Chargement…</p>}>
@@ -43,14 +44,28 @@ async function ContenuPageAvocat({ params }: Pick<PageProps<"/p/[token]/avocat">
     )
   }
 
+  const mots = vocabulaire(partie.dossier.mode)
+
   if (partie.confirme_le) {
+    const qui =
+      partie.rempli_par === "avocat"
+        ? "Un avocat a déjà répondu pour cette partie."
+        : "Votre client a déjà répondu lui-même."
     return (
       <Message titre="Une réponse a déjà été transmise">
-        {partie.rempli_par === "avocat"
-          ? "Un avocat a déjà répondu pour cette partie."
-          : "Votre client a déjà répondu lui-même."}{" "}
-        Ses coordonnées et ses disponibilités ont été transmises au médiateur, qui prendra
-        contact prochainement.
+        {qui}{" "}
+        {partie.choix === "refuse"
+          ? `Le refus de ${mots.laProcedure} a été enregistré ; le juge en sera informé.`
+          : `Ses coordonnées et ses disponibilités ont été transmises ${mots.auTiers}, qui prendra contact prochainement.`}
+      </Message>
+    )
+  }
+
+  if (partie.dossier.cloture_le) {
+    return (
+      <Message titre="Ce dossier est clôturé">
+        {mots.laProcedure.charAt(0).toUpperCase() + mots.laProcedure.slice(1)} est terminée :
+        il n&apos;est plus possible de répondre. Pour toute question, contactez la juridiction.
       </Message>
     )
   }
@@ -61,7 +76,7 @@ async function ContenuPageAvocat({ params }: Pick<PageProps<"/p/[token]/avocat">
     ? await creneauxLibres(partie.dossier.mediateur_id)
     : []
 
-  return <ParcoursAvocat token={token} jours={grouperParJour(creneaux)} />
+  return <ParcoursAvocat token={token} mode={partie.dossier.mode} jours={grouperParJour(creneaux)} />
 }
 
 function Message({ titre, children }: { titre: string; children: React.ReactNode }) {

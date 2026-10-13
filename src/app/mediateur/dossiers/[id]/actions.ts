@@ -1,5 +1,6 @@
 "use server"
 
+import { envoyerConfirmationsRdv } from "@/lib/emails/confirmation-rdv"
 import { lireMediateurId } from "@/lib/roles"
 import type { Enums, Json } from "@/lib/supabase/database.types"
 import { createClient } from "@/lib/supabase/server"
@@ -142,6 +143,8 @@ export async function fixerRendezVous(dossierId: string, saisie: SaisieRendezVou
 
   // Statut recalculé par la base (rdv_fixe)
   await supabase.rpc("recalculer_statut_dossier", { p_dossier_id: dossier.id })
+  // E-mails de confirmation (date, format, lieu) aux parties et au médiateur. Ne lève jamais.
+  await envoyerConfirmationsRdv(dossier.id)
 
   const tiers = mots(dossier.mode).tiers
   return ajouterEvenement(

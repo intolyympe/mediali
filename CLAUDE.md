@@ -66,6 +66,14 @@ Le modèle de données actuel est décrit dans **Modèle V2** ci-dessous.
   l'élément rendu n'est pas un `<button>` (lien, div) :
   `<Button render={<Link href="/juridiction" />} nativeButton={false}>Retour</Button>`.
 - `cn` vient du paquet `cn` (réexporté par `src/lib/utils.ts`).
+- **Temps réel Supabase : appeler `await supabase.realtime.setAuth()` AVANT
+  `.subscribe()`.** Sinon l'abonnement part sans le jeton de l'utilisateur
+  (il est chargé de façon asynchrone) : Supabase l'accepte comme anonyme
+  (`SUBSCRIBED`), mais la RLS, réservée aux utilisateurs connectés, filtre
+  **tous** les événements. Symptôme : « Mise à jour en temps réel » affiché,
+  rien ne se met à jour. Modèle : `src/app/mediateur/dossiers/[id]/temps-reel.tsx`
+  (fonction `abonner()` asynchrone dans le `useEffect`, drapeau `actif` pour le
+  nettoyage).
 - **Jointure vers `mediateurs` depuis `dossiers` : toujours préciser la clé**,
   car il y a deux liens (`mediateur_id` et `co_mediateur_id`). Sinon Supabase
   renvoie l'erreur PGRST201 « more than one relationship was found ».
@@ -466,15 +474,18 @@ Points de contact :
 - `npm run db:start` / `npm run db:stop` : Supabase local (Docker)
 - `npm run db:reset` : rejoue migrations et seed
 - `npm run db:types` : régénère les types TypeScript (personne 1)
-- `npm run reset-demo` : vide dossiers, parties, disponibilités et créneaux de
-  la base configurée dans `.env.local` (clé service_role), puis recrée les
-  données de démo et le dossier 26/00300 à scanner en direct. Ne touche ni aux
-  comptes ni aux médiateurs. `npm run reset-demo -- --essai` : simulation.
+- `npm run reset-demo` : vide evenements, disponibilites, parties, dossiers et
+  creneaux de la base configurée dans `.env.local` (clé service_role, client
+  Supabase JS), puis recrée exactement le seed V2 (7 dossiers, parties,
+  disponibilités, créneaux, événements) et le dossier **26/00300** à scanner en
+  direct (jetons `demo-300-demandeur` et `demo-300-defendeur`). Ne touche ni
+  aux comptes ni à la table mediateurs. `npm run reset-demo -- --essai` :
+  simulation. Garder `scripts/reset-demo.mjs` aligné sur `supabase/seed.sql`.
 - `npm run lint`, `npm run typecheck`, `npm run build`
 - Base hébergée (sans Docker) : coller dans l'éditeur SQL de Supabase
   `supabase/vider-donnees.sql` puis `supabase/seed.sql` (données de démo V2,
-  sans toucher aux comptes ni aux médiateurs existants).
-  `npm run reset-demo` ne recrée que les 3 dossiers historiques + 26/00300.
+  sans toucher aux comptes ni aux médiateurs existants). `npm run reset-demo`
+  fait la même chose sans éditeur SQL, avec en plus le dossier 26/00300.
 
 Comptes de démo (mot de passe `motdepasse`) : `greffe@exemple.fr` (espace
 juridiction), `mediateur@exemple.fr`. Ils sont créés en local par

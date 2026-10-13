@@ -15,7 +15,8 @@ export type ResultatRelance = {
 /**
  * Bouton « Relancer » : envoie le lien du QR code (/p/<token>) aux parties
  * pas encore confirmées dont un e-mail est connu (partie et/ou avocat).
- * Réservé à la juridiction et au médiateur du dossier.
+ * Réservé à la juridiction et aux intervenants du dossier (principal ou
+ * co-médiateur). Chaque relance est ajoutée à la timeline du dossier.
  */
 export async function relancerParties(dossierId: string): Promise<ResultatRelance> {
   const supabase = await createClient()
@@ -25,13 +26,14 @@ export async function relancerParties(dossierId: string): Promise<ResultatRelanc
 
   const { data: dossier, error } = await supabase
     .from("dossiers")
-    .select("numero_rg, mode, mediateur_id, parties(token, email, avocat_email, consentement_rgpd, confirme_le, choix)")
+    .select("id, numero_rg, mode, mediateur_id, co_mediateur_id, parties(token, email, avocat_email, consentement_rgpd, confirme_le, choix)")
     .eq("id", dossierId)
     .maybeSingle()
 
   if (error) return { envoyes: 0, erreur: "Impossible de lire le dossier." }
   if (!dossier) return { envoyes: 0, erreur: "Dossier introuvable." }
-  if (role === "mediateur" && dossier.mediateur_id !== lireMediateurId(claims?.claims)) {
+  const mediateurId = lireMediateurId(claims?.claims)
+  if (role === "mediateur" && dossier.mediateur_id !== mediateurId && dossier.co_mediateur_id !== mediateurId) {
     return { envoyes: 0, erreur: "Ce dossier ne vous est pas confié." }
   }
 
@@ -69,5 +71,14 @@ export async function relancerParties(dossierId: string): Promise<ResultatRelanc
   }
 
   const ok = await envoyerEmails(emails)
-  return ok ? { envoyes: emails.length } : { envoyes: 0, erreur: "L'envoi des e-mails a échoué." }
+  if (!ok) return { envoyes: 0, erreur: "L'envoi des e-mails a échoué." }
+
+  // Visible dans la timeline des espaces juridiction et médiateur
+  await supabase.from("evenements").insert({
+    dossier_id: dossier.id,
+    type: "relance",
+    libelle: `Relance envoyée par e-mail (${emails.length} destinataire${emails.length > 1 ? "s" : ""})`,
+    acteur: role === "greffe" ? "juridiction" : "mediateur",
+  })
+  return { envoyes: emails.length }
 }

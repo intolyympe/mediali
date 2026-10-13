@@ -19,6 +19,7 @@ const ERREUR_LIEN = "Ce lien ne fonctionne pas. Vérifiez le QR code sur votre c
 const ERREUR_DEJA_REPONDU = "Une réponse a déjà été envoyée pour ce dossier."
 const ERREUR_NOM =
   "Ce nom ne correspond pas. Écrivez votre nom de famille comme sur le courrier reçu."
+const ERREUR_CLOS = "Ce dossier est clôturé : il n'est plus possible de répondre."
 const ERREUR_ENVOI = "Votre réponse n'a pas pu être envoyée. Réessayez dans quelques minutes."
 
 const FORMATS: Enums<"preference_format">[] = ["ensemble", "separe", "indifferent"]
@@ -28,6 +29,7 @@ async function verifierAcces(token: string, nom: string) {
   const partie = await trouverPartieParToken(token)
   if (!partie?.dossier) return { erreur: ERREUR_LIEN } as const
   if (partie.confirme_le) return { erreur: ERREUR_DEJA_REPONDU } as const
+  if (partie.dossier.cloture_le) return { erreur: ERREUR_CLOS } as const
   if (typeof nom !== "string" || !memeNom(nom, partie.nom)) return { erreur: ERREUR_NOM } as const
   return { partie }
 }

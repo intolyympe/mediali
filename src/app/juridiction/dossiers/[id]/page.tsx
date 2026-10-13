@@ -135,9 +135,19 @@ async function DetailDossier({ params }: Pick<PageProps<"/juridiction/dossiers/[
   )
 }
 
-/** Précision sous le libellé : le choix exprimé par la partie qui répond. */
+/**
+ * Précision sous le libellé, identique à l'espace médiateur : choix de la
+ * partie qui répond, présents et absents d'une séance.
+ */
 function detailEvenement(type: string, details: Json, conciliation: boolean) {
-  if (type !== "reponse" || !details || typeof details !== "object" || Array.isArray(details)) return undefined
+  if (!details || typeof details !== "object" || Array.isArray(details)) return undefined
+  if ((type === "seance" || type === "reunion_information") && Array.isArray(details.presents)) {
+    const presents = details.presents.join(", ") || "aucune partie"
+    const absents =
+      Array.isArray(details.absents) && details.absents.length > 0 ? ` · Absents : ${details.absents.join(", ")}` : ""
+    return `Présents : ${presents}${absents}`
+  }
+  if (type !== "reponse") return undefined
   const choix = details.choix
   if (choix !== "information" && choix !== "accepte" && choix !== "refuse") return undefined
   const libelle =

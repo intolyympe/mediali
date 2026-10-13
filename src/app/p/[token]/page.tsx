@@ -62,6 +62,15 @@ async function ContenuPagePartie({ params }: Pick<PageProps<"/p/[token]">, "para
     )
   }
 
+  if (partie.dossier.cloture_le) {
+    return (
+      <Message titre="Ce dossier est clôturé">
+        {majuscule(mots.laProcedure)} est terminée : il n&apos;est plus possible de répondre.
+        Pour toute question, contactez votre avocat ou la juridiction.
+      </Message>
+    )
+  }
+
   // Seuls le numéro du dossier et les créneaux sont envoyés au navigateur :
   // le nom de la partie reste sur le serveur pour la vérification.
   const creneaux = partie.dossier.mediateur_id
@@ -77,6 +86,8 @@ async function ContenuPagePartie({ params }: Pick<PageProps<"/p/[token]">, "para
     />
   )
 }
+
+const majuscule = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1)
 
 function Message({ titre, children }: { titre: string; children: React.ReactNode }) {
   return (

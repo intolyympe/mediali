@@ -28,7 +28,7 @@ export async function trouverPartieParToken(token: string) {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from("parties")
-    .select("*, dossier:dossiers(id, numero_rg, juridiction, mode, mediateur_id, statut)")
+    .select("*, dossier:dossiers(id, numero_rg, juridiction, mode, mediateur_id, statut, cloture_le)")
     .eq("token", token)
     .maybeSingle()
 
@@ -127,7 +127,8 @@ export type ReponsePartie = Pick<
  * ainsi le dossier ne change de statut qu'une seule fois (utile pour le
  * temps réel du tableau de bord médiateur).
  *
- * Lève une erreur si la partie a déjà répondu : vérifier `confirme_le` avant.
+ * Lève une erreur si la partie a déjà répondu ou si le dossier est clôturé :
+ * vérifier `confirme_le` et `dossier.cloture_le` avant.
  */
 export async function enregistrerReponse(
   partieId: string,
@@ -138,12 +139,13 @@ export async function enregistrerReponse(
 
   const { data: partie, error: erreurLecture } = await supabase
     .from("parties")
-    .select("dossier_id, confirme_le")
+    .select("dossier_id, confirme_le, dossier:dossiers(cloture_le)")
     .eq("id", partieId)
     .single()
 
   if (erreurLecture) throw erreurLecture
   if (partie.confirme_le) throw new Error("Cette partie a déjà répondu.")
+  if (partie.dossier?.cloture_le) throw new Error("Ce dossier est clôturé.")
 
   const { error: erreurSuppression } = await supabase
     .from("disponibilites")

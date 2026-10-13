@@ -60,30 +60,42 @@ export function verifierAvocat(avocat: SaisieAvocat) {
 export type SaisieClient = {
   telephone: string
   email: string
+  telephone_2: string
+  email_2: string
+  adresse: string
   passerParAvocat: boolean
 }
 
-export type ErreursClient = { telephone?: string; email?: string }
+export type ErreursClient = Partial<Record<"telephone" | "email" | "telephone_2" | "email_2" | "adresse", string>>
+
+const ADRESSE_MAX = 300
 
 /**
  * Le téléphone du client est obligatoire, sauf si le médiateur doit passer par
- * l'avocat. L'e-mail est toujours facultatif.
+ * l'avocat. Les autres coordonnées sont facultatives mais vérifiées si remplies.
  */
 export function verifierClient(client: SaisieClient) {
   const erreurs: ErreursClient = {}
+  const telephoneInvalide = (valeur: string) => valeur.trim() !== "" && !normaliserTelephone(valeur)
+  const emailInvalide = (valeur: string) => valeur.trim() !== "" && !EMAIL.test(valeur.trim())
 
   if (!client.telephone.trim()) {
     if (!client.passerParAvocat) {
-      erreurs.telephone =
-        "Indiquez le téléphone de votre client, ou cochez la case ci-dessous."
+      erreurs.telephone = "Indiquez le téléphone de votre client, ou cochez la case ci-dessus."
     }
-  } else if (!normaliserTelephone(client.telephone)) {
+  } else if (telephoneInvalide(client.telephone)) {
     erreurs.telephone = "Ce numéro n'est pas valide. Exemple : 0692 12 34 56."
   }
-
-  if (client.email.trim() && !EMAIL.test(client.email.trim())) {
+  if (emailInvalide(client.email)) {
     erreurs.email = "Cette adresse e-mail n'est pas valide. Exemple : nom@exemple.fr."
   }
+  if (telephoneInvalide(client.telephone_2)) {
+    erreurs.telephone_2 = "Ce numéro n'est pas valide. Exemple : 0262 12 34 56."
+  }
+  if (emailInvalide(client.email_2)) {
+    erreurs.email_2 = "Cette adresse e-mail n'est pas valide. Exemple : nom@exemple.fr."
+  }
+  if (client.adresse.trim().length > ADRESSE_MAX) erreurs.adresse = "Cette adresse est trop longue."
 
   return erreurs
 }
