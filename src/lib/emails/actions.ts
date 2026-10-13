@@ -1,9 +1,8 @@
 "use server"
 
-import { headers } from "next/headers"
-
 import { lireMediateurId, lireRole } from "@/lib/roles"
 import { createClient } from "@/lib/supabase/server"
+import { urlPartie } from "@/lib/url"
 
 import { envoyerEmails, miseEnForme, type Email } from "./envoyer"
 
@@ -35,14 +34,11 @@ export async function relancerParties(dossierId: string): Promise<ResultatRelanc
     return { envoyes: 0, erreur: "Ce dossier ne vous est pas confié." }
   }
 
-  const entetes = await headers()
-  const origine = entetes.get("origin") ?? `https://${entetes.get("host")}`
-
   const emails: Email[] = []
   for (const partie of dossier.parties) {
     if (partie.consentement_rgpd && partie.confirme_le) continue
 
-    const lien = `${origine}/p/${partie.token}`
+    const lien = urlPartie(partie.token)
     const destinataires = new Set([partie.email, partie.avocat_email].filter((e) => e))
     for (const destinataire of destinataires) {
       emails.push({

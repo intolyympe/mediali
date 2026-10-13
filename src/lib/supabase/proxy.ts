@@ -5,7 +5,8 @@ import { ACCUEIL_PAR_ROLE, lireRole, type Role } from "@/lib/roles"
 
 import type { Database } from "./database.types"
 
-// Pages accessibles sans être connecté
+// Pages accessibles sans être connecté : l'accueil, la connexion et les
+// pages des QR codes
 const CHEMINS_PUBLICS = ["/connexion", "/p/"]
 
 // Espaces réservés à un rôle
@@ -15,7 +16,7 @@ const ESPACES: Record<Role, string> = {
 }
 
 function estPublic(chemin: string) {
-  return CHEMINS_PUBLICS.some((prefixe) => chemin.startsWith(prefixe))
+  return chemin === "/" || CHEMINS_PUBLICS.some((prefixe) => chemin.startsWith(prefixe))
 }
 
 function estDansEspace(chemin: string, espace: string) {
@@ -77,7 +78,7 @@ export async function updateSession(request: NextRequest) {
   const autreEspace = Object.entries(ESPACES).some(
     ([roleEspace, espace]) => roleEspace !== role && estDansEspace(chemin, espace)
   )
-  if (chemin === "/" || autreEspace) return rediriger(ACCUEIL_PAR_ROLE[role])
+  if (autreEspace) return rediriger(ACCUEIL_PAR_ROLE[role])
 
   return response
 }

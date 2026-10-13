@@ -191,7 +191,12 @@ relireDossier(dossierId: string)
 ### Autres
 - `src/lib/roles.ts` : `Role`, `ACCUEIL_PAR_ROLE`, `lireRole(claims)`,
   `lireMediateurId(claims)`.
-- `src/lib/statuts.ts` : `LIBELLES_STATUT`, `LIBELLES_ROLE` (libellés français).
+- `src/lib/statuts.ts` : `LIBELLES_STATUT`, `LIBELLES_ROLE` (libellés français),
+  `trierParties(parties)` (demandeur d'abord : ne pas trier par ordre
+  alphabétique, « defendeur » passerait avant « demandeur »).
+- `src/lib/url.ts` : `urlPartie(token)` → lien du QR code, construit avec
+  `NEXT_PUBLIC_SITE_URL`. Ne jamais écrire une URL en dur ni la déduire des
+  en-têtes de la requête (le QR code contiendrait `localhost`).
 - `src/components/bouton-deconnexion.tsx` : `<BoutonDeconnexion />`.
 - `src/app/connexion/actions.ts` : `seConnecter`, `seDeconnecter`.
 
@@ -255,6 +260,10 @@ Points de contact :
 - `npm run db:start` / `npm run db:stop` : Supabase local (Docker)
 - `npm run db:reset` : rejoue migrations et seed
 - `npm run db:types` : régénère les types TypeScript (personne 1)
+- `npm run reset-demo` : vide dossiers, parties, disponibilités et créneaux de
+  la base configurée dans `.env.local` (clé service_role), puis recrée les
+  données de démo et le dossier 26/00300 à scanner en direct. Ne touche ni aux
+  comptes ni aux médiateurs. `npm run reset-demo -- --essai` : simulation.
 - `npm run lint`, `npm run typecheck`, `npm run build`
 
 Comptes de démo (mot de passe `motdepasse`) : `greffe@exemple.fr`,

@@ -1,13 +1,13 @@
 import type { Metadata } from "next"
-import { headers } from "next/headers"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LIBELLES_ROLE } from "@/lib/statuts"
+import { LIBELLES_ROLE, trierParties } from "@/lib/statuts"
 import { createClient } from "@/lib/supabase/server"
+import { urlPartie } from "@/lib/url"
 
 import { BadgeStatut } from "../../badge-statut"
 import { BoutonImprimer, QRCodeSVG } from "./client"
@@ -43,11 +43,8 @@ async function DetailDossier({
 
   if (!dossier) notFound()
 
-  // Adresse publique du site, pour que le QR code fonctionne hors du poste du greffe.
-  const entetes = await headers()
-  const origine = `${entetes.get("x-forwarded-proto") ?? "http"}://${entetes.get("host")}`
-
-  const parties = dossier.parties.toSorted((a, b) => a.role.localeCompare(b.role))
+  // Demandeur d'abord, puis défendeur (aussi à l'impression)
+  const parties = trierParties(dossier.parties)
 
   return (
     <>
@@ -73,7 +70,7 @@ async function DetailDossier({
 
       <div className="flex flex-col gap-6">
         {parties.map((partie) => {
-          const url = `${origine}/p/${partie.token}`
+          const url = urlPartie(partie.token)
           return (
             <Card
               key={partie.id}

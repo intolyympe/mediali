@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LIBELLES_ROLE, LIBELLES_STATUT } from "@/lib/statuts"
+import { LIBELLES_ROLE, LIBELLES_STATUT, trierParties } from "@/lib/statuts"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import type { Enums } from "@/lib/supabase/database.types"
@@ -155,7 +155,7 @@ function CarteDossier({
 }) {
   const enRetard = estEnRetard(dossier, maintenant)
   const jours = joursDepuis(dossier.date_ordonnance, maintenant)
-  const parties = [...dossier.parties].sort((a, b) => a.role.localeCompare(b.role))
+  const parties = trierParties(dossier.parties)
 
   return (
     <Link href={`/mediateur/dossiers/${dossier.id}`} className="block rounded-xl">

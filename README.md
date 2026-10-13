@@ -37,6 +37,10 @@ Renseigner `.env.local` avec les valeurs affichées par `npx supabase status` :
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `anon key` (ou `Publishable key`)                 |
 | `SUPABASE_SERVICE_ROLE_KEY`     | `service_role key` (ou `Secret key`)              |
 | `RESEND_API_KEY`                | à créer sur resend.com (facultatif pour démarrer) |
+| `NEXT_PUBLIC_SITE_URL`          | `http://localhost:3000` (adresse des QR codes)    |
+
+Avec un projet Supabase hébergé (sans Docker), sauter l'étape 2 et prendre
+l'URL et les clés dans Project Settings → API.
 
 ```bash
 # 4. Lancer l'application
@@ -63,6 +67,19 @@ Le seed crée un médiateur, 10 créneaux sur les 7 prochains jours ouvrés et
 | 26/00123 | En attente              | `demo-1-demandeur`, `demo-1-defendeur`   |
 | 26/00145 | Partiellement joignable | `demo-2-demandeur`, `demo-2-defendeur`   |
 | 26/00167 | RDV fixé                | `demo-3-demandeur`, `demo-3-defendeur`   |
+
+### Remettre la démo à zéro (base hébergée comprise)
+
+```bash
+npm run reset-demo -- --essai   # simulation : affiche ce qui serait fait
+npm run reset-demo              # vide et recrée les données de démo
+```
+
+Le script utilise la clé service_role de `.env.local`. Il supprime tous les
+dossiers, parties, disponibilités et créneaux, recrée 10 créneaux sur les
+prochains jours ouvrés, les 3 dossiers ci-dessus et le dossier **26/00300**
+(en attente, à scanner en direct), puis affiche ses liens `/p/...`. Il ne
+touche ni aux comptes utilisateurs ni aux médiateurs.
 
 Supabase Studio (interface d'administration de la base) : http://127.0.0.1:54323.
 Les e-mails envoyés en local sont visibles sur http://127.0.0.1:54324.

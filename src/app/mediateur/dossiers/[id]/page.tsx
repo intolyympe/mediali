@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { lireMediateurId } from "@/lib/roles"
-import { LIBELLES_ROLE, LIBELLES_STATUT } from "@/lib/statuts"
+import { LIBELLES_ROLE, LIBELLES_STATUT, trierParties } from "@/lib/statuts"
 import { createClient } from "@/lib/supabase/server"
 import type { Tables } from "@/lib/supabase/database.types"
 
@@ -70,7 +70,7 @@ async function DetailDossier({ params }: { params: Promise<{ id: string }> }) {
   // Id inconnu, mal formé ou dossier d'un autre médiateur
   if (!dossier) notFound()
 
-  const parties = [...dossier.parties].sort((a, b) => a.role.localeCompare(b.role))
+  const parties = trierParties(dossier.parties)
 
   return (
     <>

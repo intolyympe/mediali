@@ -4,15 +4,28 @@ import { redirect } from "next/navigation"
 
 import { createClient } from "@/lib/supabase/server"
 
-export type EtatNouveauDossier = { erreur?: string }
+// En cas d'erreur, on renvoie les valeurs saisies pour remplir à nouveau le
+// formulaire (React 19 vide les formulaires après une action serveur).
+export type EtatNouveauDossier = {
+  erreur?: string
+  valeurs?: Record<string, string>
+  essai: number
+}
 
 const ROLES = ["demandeur", "defendeur"] as const
 
 export async function creerDossier(
-  _etatPrecedent: EtatNouveauDossier,
+  etatPrecedent: EtatNouveauDossier,
   formData: FormData
 ): Promise<EtatNouveauDossier> {
   const champ = (nom: string) => String(formData.get(nom) ?? "").trim()
+  const echec = (erreur: string): EtatNouveauDossier => ({
+    erreur,
+    valeurs: Object.fromEntries(
+      [...formData.entries()].map(([nom, valeur]) => [nom, String(valeur)])
+    ),
+    essai: etatPrecedent.essai + 1,
+  })
 
   const dossier = {
     numero_rg: champ("numero_rg"),
@@ -31,7 +44,7 @@ export async function creerDossier(
     Object.values(dossier).some((valeur) => !valeur) ||
     parties.some((partie) => !partie.nom || !partie.prenom)
   ) {
-    return { erreur: "Veuillez remplir tous les champs obligatoires." }
+    return echec("Veuillez remplir tous les champs obligatoires.")
   }
 
   const supabase = await createClient()
@@ -43,12 +56,11 @@ export async function creerDossier(
     .single()
 
   if (error) {
-    return {
-      erreur:
-        error.code === "23505"
-          ? `Le dossier n° ${dossier.numero_rg} existe déjà.`
-          : `Impossible de créer le dossier : ${error.message}`,
-    }
+    return echec(
+      error.code === "23505"
+        ? `Le dossier n° ${dossier.numero_rg} existe déjà.`
+        : `Impossible de créer le dossier : ${error.message}`
+    )
   }
 
   // Le jeton de chaque partie (QR code) est généré par la base :
@@ -60,9 +72,7 @@ export async function creerDossier(
   if (erreurParties) {
     // Pas de dossier sans ses parties : on annule la création.
     await supabase.from("dossiers").delete().eq("id", cree.id)
-    return {
-      erreur: `Impossible d'enregistrer les parties : ${erreurParties.message}`,
-    }
+    return echec(`Impossible d'enregistrer les parties : ${erreurParties.message}`)
   }
 
   redirect(`/greffe/dossiers/${cree.id}`)

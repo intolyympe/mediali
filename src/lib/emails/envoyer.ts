@@ -15,7 +15,7 @@ const EN_TETE = "Médiation – Cour d'appel de Saint-Denis"
 // Adresse d'expédition : doit appartenir à un domaine vérifié sur Resend.
 // onboarding@resend.dev ne peut écrire qu'à l'adresse du compte Resend.
 const EXPEDITEUR =
-  process.env.EMAIL_EXPEDITEUR ?? "Médiation Saint-Denis <onboarding@resend.dev>"
+  process.env.EMAIL_EXPEDITEUR || "Médiation Saint-Denis <onboarding@resend.dev>"
 
 /** Ajoute l'en-tête et la mention de bas de page communs à tous les e-mails. */
 export function miseEnForme(corps: string) {
