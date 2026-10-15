@@ -38,6 +38,7 @@ Renseigner `.env.local` avec les valeurs affichées par `npx supabase status` :
 | `SUPABASE_SERVICE_ROLE_KEY`     | `service_role key` (ou `Secret key`)              |
 | `RESEND_API_KEY`                | à créer sur resend.com (facultatif pour démarrer) |
 | `NEXT_PUBLIC_SITE_URL`          | `http://localhost:3000` (adresse des QR codes)    |
+| `NEXT_PUBLIC_DEMO_MODE`, `DEMO_*`, `CRON_SECRET` | démo publique uniquement, voir [Démo publique](#démo-publique) |
 
 Avec un projet Supabase hébergé (sans Docker), sauter l'étape 2 et prendre
 l'URL et les clés dans Project Settings → API.
@@ -89,8 +90,10 @@ Le script utilise la clé service_role de `.env.local`. Il vide les
 événements, disponibilités, parties, dossiers et créneaux, recrée exactement
 les 7 dossiers de démo ci-dessus (avec leur timeline) et ajoute le dossier
 **26/00300** en attente, à scanner en direct (Marie Payet / Jean Hoarau), puis
-affiche ses deux liens `/p/...`. Il ne touche ni aux comptes utilisateurs ni
-aux médiateurs. Lancez-le juste avant la démo, avec l'adresse de production :
+affiche ses deux liens `/p/...`. Si les variables `DEMO_*` sont renseignées,
+il restaure aussi les deux comptes de démo (voir
+[Remise à zéro chaque nuit](#remise-à-zéro-chaque-nuit)). Il ne touche à aucun
+autre compte ni à la table des médiateurs. Lancez-le juste avant la démo, avec l'adresse de production :
 `NEXT_PUBLIC_SITE_URL=https://<projet>.vercel.app npm run reset-demo`.
 
 Supabase Studio (interface d'administration de la base) : http://127.0.0.1:54323.
@@ -150,3 +153,94 @@ where email = 'mediateur@exemple.fr';
 
 Le rôle est lu dans le jeton de connexion : l'utilisateur doit se reconnecter
 pour qu'un changement soit pris en compte.
+
+## Démo publique
+
+Avec `NEXT_PUBLIC_DEMO_MODE=true`, n'importe qui peut visiter les espaces
+juridiction et médiateur sans mot de passe :
+
+- l'accueil et `/connexion` affichent **Entrer comme juridiction** et **Entrer
+  comme médiateur**. Chaque bouton appelle une server action qui se connecte
+  avec le compte de démonstration correspondant puis redirige vers
+  `/juridiction` ou `/mediateur`. Le navigateur n'envoie que le nom de
+  l'espace : les identifiants restent sur le serveur ;
+- chaque espace a un bouton **Changer d'espace** ;
+- un bandeau sur toutes les pages rappelle que les données sont fictives et
+  remises à zéro chaque nuit ;
+- sur la page d'un dossier de la juridiction, **Ouvrir le parcours de cette
+  partie** (à côté de chaque QR code) ouvre `/p/<token>` dans un nouvel
+  onglet, pour tester sans téléphone ;
+- **Se déconnecter** ne ferme que la session du visiteur (les comptes sont
+  partagés).
+
+Sans la variable (ou avec `false`), rien de tout cela n'apparaît et
+`/api/reset-demo` répond 404.
+
+### Variables
+
+| Variable                    | Où          | Rôle |
+| --------------------------- | ----------- | ---- |
+| `NEXT_PUBLIC_DEMO_MODE`     | navigateur et serveur | `true` pour activer la démo. Fixée au build : redéployer après modification |
+| `DEMO_JURIDICTION_EMAIL`    | serveur     | compte de démo de la juridiction (rôle `greffe`) |
+| `DEMO_JURIDICTION_PASSWORD` | serveur     | son mot de passe |
+| `DEMO_MEDIATEUR_EMAIL`      | serveur     | compte de démo du médiateur (rôle `mediateur`, relié à Marie-Claude Fontaine du seed) |
+| `DEMO_MEDIATEUR_PASSWORD`   | serveur     | son mot de passe |
+| `CRON_SECRET`               | serveur     | secret de la remise à zéro nocturne (`openssl rand -hex 32`) |
+
+Plus les variables habituelles : `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+`NEXT_PUBLIC_SITE_URL`. Les variables « serveur » ne doivent jamais avoir le
+préfixe `NEXT_PUBLIC_`.
+
+### Remise à zéro chaque nuit
+
+`vercel.json` programme un appel quotidien à `/api/reset-demo` à 23h00 UTC,
+soit **3h00 à La Réunion** (Vercel Cron compte en UTC). Vercel ajoute
+l'en-tête `Authorization: Bearer <CRON_SECRET>` : la route refuse tout appel
+sans ce secret (401). Elle exécute la même logique que `npm run reset-demo`
+(`src/lib/demo/reinitialiser.mjs`) puis restaure les deux comptes de démo :
+retrouvés par leur e-mail (`DEMO_JURIDICTION_EMAIL`, `DEMO_MEDIATEUR_EMAIL`),
+ils reprennent le mot de passe des variables `DEMO_*_PASSWORD` et leur rôle
+(`app_metadata` : `greffe` pour la juridiction ; `mediateur` et le
+`mediateur_id` de la ligne de `mediateurs` qui a le même e-mail pour le
+médiateur). Aucun autre compte n'est modifié, et la table `mediateurs` est
+seulement lue. Les journaux de la fonction, dans Vercel, indiquent les comptes
+restaurés (jamais les mots de passe). Sur l'offre Hobby de Vercel, l'appel peut avoir lieu à n'importe
+quel moment entre 3h00 et 3h59.
+
+Lancer la remise à zéro à la main :
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<projet>.vercel.app/api/reset-demo
+```
+
+### Mise en place
+
+1. Créer les deux comptes de démo et leur rôle (voir
+   [Déployer sur un projet Supabase hébergé](#déployer-sur-un-projet-supabase-hébergé)).
+   Utiliser des comptes dédiés à la démo, jamais des comptes réels.
+2. Dans Supabase, Authentication → Sign In / Providers : désactiver les
+   inscriptions (« Allow new users to sign up ») et activer « Secure email
+   change ».
+3. Dans Vercel (Settings → Environment Variables), renseigner les variables
+   ci-dessus, puis redéployer.
+4. Vérifier dans Vercel, onglet Cron Jobs, que `/api/reset-demo` apparaît.
+
+### Risques connus
+
+Les comptes de démo sont partagés et leur session est dans le navigateur. Un
+visiteur malveillant peut, avec l'API Supabase :
+
+- **modifier ou supprimer les données** : elles sont remises en place à la
+  prochaine remise à zéro ;
+- **changer le mot de passe d'un compte de démo** : les boutons de démo ne
+  marchent plus jusqu'à la prochaine remise à zéro, qui remet le mot de passe
+  des variables `DEMO_*_PASSWORD`. Pour réparer tout de suite, lancer la
+  remise à zéro à la main (`curl` ci-dessus) ;
+- **changer l'e-mail d'un compte de démo**, si « Secure email change » n'est
+  pas activé dans Supabase : la remise à zéro ne retrouve plus le compte, le
+  signale en erreur (après avoir remis les données) et un humain doit
+  corriger l'e-mail dans Supabase. D'où l'étape 2 de la mise en place.
+
+Le rôle (`app_metadata`) n'est pas modifiable par un visiteur : il est
+réappliqué par précaution.

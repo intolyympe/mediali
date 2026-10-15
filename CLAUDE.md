@@ -411,6 +411,13 @@ relireDossier(dossierId: string)
   `NEXT_PUBLIC_SITE_URL`. Ne jamais écrire une URL en dur ni la déduire des
   en-têtes de la requête (le QR code contiendrait `localhost`).
 - `src/components/bouton-deconnexion.tsx` : `<BoutonDeconnexion />`.
+- **Démo publique** (`NEXT_PUBLIC_DEMO_MODE=true`, voir README) :
+  `MODE_DEMO` (`src/lib/demo/mode.ts`) ; `<EntreeDemo />` et
+  `<BoutonChangerEspace vers="…" />` (`src/components/demo/entree-demo.tsx`,
+  action `entrerEnDemo` de `src/app/connexion/actions.ts`, identifiants
+  `DEMO_*` lus côté serveur uniquement) ; `<BandeauDemo />` dans le layout ;
+  remise à zéro nocturne `/api/reset-demo` (Vercel Cron, `CRON_SECRET`,
+  `vercel.json`). Mode démo désactivé : aucun de ces éléments n'apparaît.
 - `src/app/connexion/actions.ts` : `seConnecter`, `seDeconnecter`.
 
 ## Répartition de l'équipe
@@ -478,9 +485,13 @@ Points de contact :
   creneaux de la base configurée dans `.env.local` (clé service_role, client
   Supabase JS), puis recrée exactement le seed V2 (7 dossiers, parties,
   disponibilités, créneaux, événements) et le dossier **26/00300** à scanner en
-  direct (jetons `demo-300-demandeur` et `demo-300-defendeur`). Ne touche ni
-  aux comptes ni à la table mediateurs. `npm run reset-demo -- --essai` :
-  simulation. Garder `scripts/reset-demo.mjs` aligné sur `supabase/seed.sql`.
+  direct (jetons `demo-300-demandeur` et `demo-300-defendeur`). Si les
+  variables `DEMO_*` sont renseignées, restaure les deux comptes de démo (mot de
+  passe et `app_metadata`, via `auth.admin.updateUserById`) ; ne touche à aucun
+  autre compte, et la table mediateurs est seulement lue.
+  `npm run reset-demo -- --essai` :
+  simulation. Logique dans `src/lib/demo/reinitialiser.mjs` (partagée avec
+  `/api/reset-demo`) : la garder alignée sur `supabase/seed.sql`.
 - `npm run lint`, `npm run typecheck`, `npm run build`
 - Base hébergée (sans Docker) : coller dans l'éditeur SQL de Supabase
   `supabase/vider-donnees.sql` puis `supabase/seed.sql` (données de démo V2,

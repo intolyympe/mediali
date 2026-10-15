@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 
 import { BoutonDeconnexion } from "@/components/bouton-deconnexion"
+import { BoutonChangerEspace } from "@/components/demo/entree-demo"
+import { MODE_DEMO } from "@/lib/demo/mode"
 import { lireMediateurId } from "@/lib/roles"
 import { createClient } from "@/lib/supabase/server"
 
@@ -61,7 +63,10 @@ async function ContenuEspaceMediateur() {
             Espace {conciliateur ? "conciliateur" : "médiateur"} · {intervenant?.nom ?? claims?.claims.email}
           </p>
         </div>
-        <BoutonDeconnexion />
+        <div className="flex flex-wrap gap-2">
+          {MODE_DEMO && <BoutonChangerEspace vers="juridiction" />}
+          <BoutonDeconnexion />
+        </div>
       </header>
 
       {error ? (

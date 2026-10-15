@@ -4,7 +4,9 @@ import Link from "next/link"
 import { Suspense } from "react"
 
 import { BoutonDeconnexion } from "@/components/bouton-deconnexion"
+import { BoutonChangerEspace } from "@/components/demo/entree-demo"
 import { Button } from "@/components/ui/button"
+import { MODE_DEMO } from "@/lib/demo/mode"
 import { createClient } from "@/lib/supabase/server"
 
 import { TableauSuivi } from "./tableau-suivi"
@@ -35,6 +37,7 @@ export default function EspaceJuridiction() {
             <PlusIcon aria-hidden />
             Nouveau dossier
           </Button>
+          {MODE_DEMO && <BoutonChangerEspace vers="mediateur" />}
           <BoutonDeconnexion />
         </div>
       </header>

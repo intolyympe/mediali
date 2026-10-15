@@ -1,6 +1,8 @@
 import Link from "next/link"
 
+import { EntreeDemo } from "@/components/demo/entree-demo"
 import { Button } from "@/components/ui/button"
+import { MODE_DEMO } from "@/lib/demo/mode"
 
 // Page d'accueil publique : présentation du projet et accès aux deux espaces.
 export default function Accueil() {
@@ -22,23 +24,27 @@ export default function Accueil() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button
-          render={<Link href="/juridiction" />}
-          nativeButton={false}
-          className="h-12 px-6 text-base"
-        >
-          Espace juridiction
-        </Button>
-        <Button
-          variant="outline"
-          render={<Link href="/mediateur" />}
-          nativeButton={false}
-          className="h-12 px-6 text-base"
-        >
-          Espace médiateur
-        </Button>
-      </div>
+      {MODE_DEMO ? (
+        <EntreeDemo />
+      ) : (
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            render={<Link href="/juridiction" />}
+            nativeButton={false}
+            className="h-12 px-6 text-base"
+          >
+            Espace juridiction
+          </Button>
+          <Button
+            variant="outline"
+            render={<Link href="/mediateur" />}
+            nativeButton={false}
+            className="h-12 px-6 text-base"
+          >
+            Espace médiateur
+          </Button>
+        </div>
+      )}
     </main>
   )
 }

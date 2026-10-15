@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Geist_Mono } from "next/font/google"
 import localFont from "next/font/local"
 
+import { BandeauDemo } from "@/components/demo/bandeau-demo"
 import { PiedDePage } from "@/components/dsfr/footer"
 import { EnTete } from "@/components/dsfr/header"
 import { Toaster } from "@/components/ui/sonner"
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Aller au contenu
         </a>
         <EnTete />
+        <BandeauDemo />
         <div id="contenu" tabIndex={-1} className="flex flex-1 flex-col outline-none">
           {children}
         </div>

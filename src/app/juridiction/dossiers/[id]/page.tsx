@@ -1,3 +1,4 @@
+import { ExternalLinkIcon } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -7,6 +8,7 @@ import { BadgeIssue, BadgeStatut } from "@/components/dsfr/statut-badge"
 import { Timeline, type EvenementTimeline } from "@/components/timeline"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MODE_DEMO } from "@/lib/demo/mode"
 import { LIBELLES_CHOIX, LIBELLES_MODE, LIBELLES_ROLE, trierParties } from "@/lib/statuts"
 import type { Json } from "@/lib/supabase/database.types"
 import { createClient } from "@/lib/supabase/server"
@@ -113,6 +115,19 @@ async function DetailDossier({ params }: Pick<PageProps<"/juridiction/dossiers/[
               <CardContent className="flex flex-col items-center gap-4 text-center">
                 <QRCodeSVG value={url} size={200} marginSize={2} title={`QR code de ${partie.prenom} ${partie.nom}`} />
                 <p className="font-mono text-xs break-all">{url}</p>
+                {/* Démo : tester le parcours sans téléphone */}
+                {MODE_DEMO && (
+                  <Button
+                    variant="outline"
+                    className="print:hidden"
+                    render={<a href={`/p/${partie.token}`} target="_blank" rel="noopener noreferrer" />}
+                    nativeButton={false}
+                  >
+                    <ExternalLinkIcon aria-hidden />
+                    Ouvrir le parcours de cette partie
+                    <span className="sr-only"> ({partie.prenom} {partie.nom}, nouvel onglet)</span>
+                  </Button>
+                )}
                 <p className="max-w-md text-sm">
                   Scannez ce code pour transmettre vos coordonnées au{" "}
                   {conciliation ? "conciliateur" : "médiateur"} et choisir une date de
