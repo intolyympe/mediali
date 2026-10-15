@@ -71,7 +71,7 @@ Le modèle de données actuel est décrit dans **Modèle V2** ci-dessous.
   (il est chargé de façon asynchrone) : Supabase l'accepte comme anonyme
   (`SUBSCRIBED`), mais la RLS, réservée aux utilisateurs connectés, filtre
   **tous** les événements. Symptôme : « Mise à jour en temps réel » affiché,
-  rien ne se met à jour. Modèle : `src/app/mediateur/dossiers/[id]/temps-reel.tsx`
+  rien ne se met à jour. Modèle : `src/components/temps-reel-dossier.tsx`
   (fonction `abonner()` asynchrone dans le `useEffect`, drapeau `actif` pour le
   nettoyage).
 - **Jointure vers `mediateurs` depuis `dossiers` : toujours préciser la clé**,
@@ -121,7 +121,8 @@ confondu avec un service officiel de l'État**.
   (clé `mediali-aide-vue` du localStorage). Le pied de page garde de la place
   en bas pour ce bouton.
 - `button.tsx`, `input.tsx` et `native-select.tsx` de `src/components/ui/` ont
-  été retouchés pour la charte (variantes et hauteur 40px). Ne jamais lancer
+  été retouchés pour la charte (variantes, hauteur 40px et au moins 44px sur
+  mobile). Ne jamais lancer
   `npx shadcn@latest add … --overwrite` sur ces fichiers : cela effacerait la
   charte. Quand `npx shadcn@latest add` demande « button.tsx already exists.
   Would you like to overwrite? », répondre **non** (`printf 'n\n' | npx
@@ -150,7 +151,8 @@ Coins presque droits : toutes les classes `rounded-*` valent 4px au maximum
   plein, une seule action principale par écran), `outline` ou `secondary` =
   bouton secondaire (contour bleu), `ghost` = tertiaire (texte bleu),
   `destructive` = suppression irréversible uniquement, `link` = lien.
-  Hauteur 40px par défaut (`size="lg"` : 48px pour les pages publiques).
+  Hauteur 40px par défaut, au moins 44px sous `sm` (`size="lg"` : 48px pour
+  les pages publiques).
 - `Input`, `NativeSelect`, `Checkbox`, `Label` de `@/components/ui`.
 - `src/components/dsfr/statut-badge.tsx` : `<BadgeStatut statut={…} />`,
   `<BadgeIssue issue={…} />`, et `<BadgeDsfr type="information" |
@@ -161,6 +163,10 @@ Coins presque droits : toutes les classes `rounded-*` valent 4px au maximum
   À utiliser à la place des badges colorés à la main
   (`src/app/juridiction/badge-statut.tsx`, `COULEURS_STATUT` de
   `src/app/mediateur/donnees.ts` : à remplacer par leurs propriétaires).
+- `src/components/temps-reel-dossier.tsx` : `<ActualisationTempsReel
+  dossierId={…} statut={…} />` sur les pages de dossier. Relit la page à chaque
+  changement et annonce les nouveaux événements et changements de statut aux
+  lecteurs d'écran (`aria-live="polite"`).
 - `src/components/timeline.tsx` : `<Timeline evenements={…} />` affiche les
   lignes de `evenements` (date et heure de La Réunion, acteur, libellé,
   `detail` facultatif). Il ne fait **aucune requête** : la page lit les
@@ -177,8 +183,28 @@ Coins presque droits : toutes les classes `rounded-*` valent 4px au maximum
   coloré non prévu par `BadgeDsfr`.
 - Focus clavier : contour bleu de 2px défini globalement (`:focus-visible`
   dans `globals.css`). Ne jamais le masquer.
-- Liens soulignés ; zones cliquables d'au moins 40px de haut.
-- Toujours un `<h1>` par page et des `<Label>` reliés aux champs.
+- Liens soulignés ; zones cliquables d'au moins 40px de haut, 44px sur mobile
+  (`min-h-11`, déjà fait pour `Button`, `Input` et `NativeSelect`).
+- Toujours un `<h1>` par page, des titres `h2`/`h3` sans saut de niveau et des
+  `<Label>` reliés aux champs. Titre d'onglet par page (`metadata.title`,
+  suffixe « – Médiali » ajouté par le layout) ; pages de dossier :
+  `generateMetadata` avec `titreDossier` (`src/lib/titres.ts`).
+- Formulaires : champs obligatoires indiqués en texte (« (obligatoire) ») ;
+  message d'erreur avec un `id` et `role="alert"`, relié au champ
+  (`aria-invalid`, `aria-describedby`) ; après une erreur, focus sur le premier
+  champ en erreur ; groupes de choix dans `<fieldset>` + `<legend>`.
+  Formulaires en `noValidate` (pas de bulles du navigateur) et boutons d'envoi
+  **jamais désactivés** : les erreurs s'affichent à l'envoi ; pendant
+  l'enregistrement, ignorer les nouveaux envois (`aria-disabled`).
+- Placeholders : seulement des exemples, préfixés par « Ex. : », jamais à la
+  place d'un `<Label>`. Leur couleur (`--placeholder`, #666666, 5,7:1) est
+  fixée globalement dans `globals.css`.
+- Parcours en étapes (`/p/…`) : le `<h1>` annonce « Étape 2 sur 6 : … » et
+  reçoit le focus à chaque étape (`useFocusTitre`, `focaliser` dans
+  `src/app/p/[token]/accessibilite.ts`).
+- Animations : `motion-reduce:` pour respecter `prefers-reduced-motion`.
+- Vérifier avec `npm run test:a11y` (axe-core, voir **Commandes**). Page
+  publique `/accessibilite`, liée depuis le pied de page.
 
 ## Schéma de la base
 
@@ -506,6 +532,12 @@ Points de contact :
   simulation. Logique dans `src/lib/demo/reinitialiser.mjs` (partagée avec
   `/api/reset-demo`) : la garder alignée sur `supabase/seed.sql`.
 - `npm run lint`, `npm run typecheck`, `npm run build`
+- `npm run test:a11y` : tests d'accessibilité (Playwright + axe-core, WCAG 2.2
+  A/AA) en mode démo sur les pages principales. Construit l'application et la
+  lance sur le port 3100 avec `.env.local` ; lecture seule (aucune réponse
+  envoyée). `PLAYWRIGHT_BASE_URL=https://… npm run test:a11y` pour tester le
+  site en ligne. `@playwright/test` est figé en 1.63.0 (avec `overrides` pour
+  `playwright-core`) ; navigateur : `npx playwright install chromium`.
 - Base hébergée (sans Docker) : coller dans l'éditeur SQL de Supabase
   `supabase/vider-donnees.sql` puis `supabase/seed.sql` (données de démo V2,
   sans toucher aux comptes ni aux médiateurs existants). `npm run reset-demo`

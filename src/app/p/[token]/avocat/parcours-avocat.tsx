@@ -13,6 +13,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import type { Enums } from "@/lib/supabase/database.types"
 import { cn } from "@/lib/utils"
 
+import { focaliser, premierEnErreur, useFocusTitre } from "../accessibilite"
 import type { JourCreneaux } from "../dates"
 import { normaliserTelephone } from "../validation"
 import { vocabulaire, type Vocabulaire } from "../vocabulaire"
@@ -117,6 +118,7 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
   const [erreursClient, setErreursClient] = useState<ErreursClient>({})
   const [enCours, startTransition] = useTransition()
   const [envoi, setEnvoi] = useState<{ rdv: string | null; le: string } | null>(null)
+  const titreRef = useFocusTitre(envoi ? "fin" : `${etape}-${confirmationRefus}`)
 
   function allerA(nouvelleEtape: number) {
     setErreur(null)
@@ -125,17 +127,27 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
   }
 
   function terminer(reponse: ResultatEnvoi) {
-    if (reponse.erreur !== null) return setErreur(reponse.erreur)
+    if (reponse.erreur !== null) {
+      setErreur(reponse.erreur)
+      // Erreur du serveur à l'envoi : focus sur le message pour qu'il soit lu
+      return focaliser("#erreur-etape")
+    }
     setEnvoi({ rdv: reponse.rdv, le: formatEnvoi.format(new Date()) })
     window.scrollTo(0, 0)
   }
 
   function validerDossier(event: React.FormEvent) {
     event.preventDefault()
-    if (!numeroRg.trim() || !nomClient.trim()) return setErreur("Remplissez les deux champs.")
+    if (!numeroRg.trim() || !nomClient.trim()) {
+      setErreur("Remplissez les deux champs.")
+      return focaliser(!numeroRg.trim() ? "#numero-rg" : "#nom-client")
+    }
     startTransition(async () => {
       const resultat = await verifierDossier(token, { numeroRg, nomClient })
-      if (resultat.erreur !== null) return setErreur(resultat.erreur)
+      if (resultat.erreur !== null) {
+        setErreur(resultat.erreur)
+        return focaliser("#numero-rg")
+      }
       setNumeroRg(resultat.numeroRg)
       setNomClient(resultat.nomClient)
       allerA(2)
@@ -146,12 +158,17 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
     event.preventDefault()
     const erreurs = verifierAvocat(avocat)
     setErreursAvocat(erreurs)
-    if (Object.keys(erreurs).length === 0) allerA(3)
+    if (Object.keys(erreurs).length === 0) return allerA(3)
+    const champ = premierEnErreur(["nom", "email", "telephone", "barreau"], erreurs)
+    if (champ) focaliser(`#avocat-${champ}`)
   }
 
   function validerChoix(event: React.FormEvent) {
     event.preventDefault()
-    if (!choix) return setErreur("Choisissez une réponse pour continuer.")
+    if (!choix) {
+      setErreur("Choisissez une réponse pour continuer.")
+      return focaliser("#choix-information")
+    }
     if (choix === "refuse") {
       setErreur(null)
       setConfirmationRefus(true)
@@ -176,18 +193,27 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
     const erreurs = verifierClient(client)
     setErreursClient(erreurs)
     if (erreurs.telephone_2 || erreurs.email_2 || erreurs.adresse) setAutreContact(true)
-    if (Object.keys(erreurs).length === 0) allerA(5)
+    if (Object.keys(erreurs).length === 0) return allerA(5)
+    const ids = { telephone: "client-telephone", email: "client-email", telephone_2: "client-telephone-2", email_2: "client-email-2", adresse: "client-adresse" }
+    const champ = premierEnErreur(["telephone", "email", "telephone_2", "email_2", "adresse"], erreurs)
+    if (champ) focaliser(`#${ids[champ]}`)
   }
 
   function validerConsentement(event: React.FormEvent) {
     event.preventDefault()
-    if (!consentement) return setErreur("Cochez la case pour continuer.")
+    if (!consentement) {
+      setErreur("Cochez la case pour continuer.")
+      return focaliser('#zone-consentement [role="checkbox"]')
+    }
     allerA(6)
   }
 
   function validerPreferences(event: React.FormEvent) {
     event.preventDefault()
-    if (!prefFormat || !prefLieu) return setErreur("Répondez aux deux questions pour continuer.")
+    if (!prefFormat || !prefLieu) {
+      setErreur("Répondez aux deux questions pour continuer.")
+      return focaliser(!prefFormat ? "#pref_format-ensemble" : "#pref_lieu-presentiel")
+    }
     allerA(7)
   }
 
@@ -233,7 +259,7 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
       <section className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <CircleCheckIcon className="size-16 text-succes print:hidden" aria-hidden />
-          <h1 className="text-2xl font-bold">
+          <h1 ref={titreRef} tabIndex={-1} className="text-2xl font-bold">
             {refus ? "Refus enregistré" : `Réponse transmise ${mots.auTiers}`}
           </h1>
           {refus ? (
@@ -319,22 +345,22 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
   // ---------------------------------------------------------------------------
   return (
     <section className="flex flex-col gap-6">
-      <BarreProgression etape={etape} />
+      <BarreProgression etape={etape} titreRef={titreRef} />
 
       {etape === 1 && (
         <form onSubmit={validerDossier} noValidate className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Répondre pour votre client</h1>
+            <h2 className="text-2xl font-bold">Répondre pour votre client</h2>
             <p className="text-lg">
               Le juge propose une {mots.procedure} à votre client. Indiquez le numéro du dossier
               et le nom de famille de votre client, tels qu&apos;ils figurent sur la notification.
             </p>
           </div>
-          <ChampTexte id="numero-rg" label="Numéro RG du dossier" valeur={numeroRg} onChange={setNumeroRg}
-            placeholder="26/00123" autoComplete="off" invalide={Boolean(erreur)} />
-          <ChampTexte id="nom-client" label="Nom de famille du client" valeur={nomClient} onChange={setNomClient}
-            autoComplete="off" majuscules invalide={Boolean(erreur)} />
-          <MessageErreur erreur={erreur} />
+          <ChampTexte id="numero-rg" label="Numéro RG du dossier (obligatoire)" valeur={numeroRg} onChange={setNumeroRg}
+            placeholder="Ex. : 26/00123" autoComplete="off" decritPar={erreur ? "erreur-etape" : undefined} />
+          <ChampTexte id="nom-client" label="Nom de famille du client (obligatoire)" valeur={nomClient} onChange={setNomClient}
+            autoComplete="off" majuscules decritPar={erreur ? "erreur-etape" : undefined} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <GrandBouton disabled={enCours}>{enCours ? "Vérification…" : "Continuer"}</GrandBouton>
           <Link href={`/p/${token}`} className="text-center text-lg font-medium text-primary underline underline-offset-4">
             Vous êtes la partie&nbsp;? Répondre vous-même
@@ -345,22 +371,23 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
       {etape === 2 && (
         <form onSubmit={validerAvocat} noValidate className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Vos coordonnées</h1>
+            <h2 className="text-2xl font-bold">Vos coordonnées</h2>
             <p className="text-lg">Dossier n° {numeroRg} · client : {nomClient}</p>
           </div>
-          <ChampTexte id="avocat-nom" label="Votre nom" valeur={avocat.nom} erreur={erreursAvocat.nom}
-            onChange={(nom) => setAvocat({ ...avocat, nom })} autoComplete="name" placeholder="Me Sophie Lebon" />
-          <ChampTexte id="avocat-email" label="Votre e-mail" type="email" valeur={avocat.email} erreur={erreursAvocat.email}
-            onChange={(email) => setAvocat({ ...avocat, email })} autoComplete="email" placeholder="nom@cabinet.fr" />
-          <ChampTexte id="avocat-telephone" label="Votre téléphone" type="tel" valeur={avocat.telephone}
+          <ChampTexte id="avocat-nom" label="Votre nom (obligatoire)" valeur={avocat.nom} erreur={erreursAvocat.nom}
+            onChange={(nom) => setAvocat({ ...avocat, nom })} autoComplete="name" placeholder="Ex. : Me Sophie Lebon" />
+          <ChampTexte id="avocat-email" label="Votre e-mail (obligatoire)" type="email" valeur={avocat.email} erreur={erreursAvocat.email}
+            onChange={(email) => setAvocat({ ...avocat, email })} autoComplete="email" placeholder="Ex. : nom@cabinet.fr" />
+          <ChampTexte id="avocat-telephone" label="Votre téléphone (obligatoire)" type="tel" valeur={avocat.telephone}
             erreur={erreursAvocat.telephone} onChange={(telephone) => setAvocat({ ...avocat, telephone })}
-            autoComplete="tel" placeholder="0262 12 34 56" />
-          <Champ id="avocat-barreau" label="Votre barreau" erreur={erreursAvocat.barreau}>
+            autoComplete="tel" placeholder="Ex. : 0262 12 34 56" />
+          <Champ id="avocat-barreau" label="Votre barreau (obligatoire)" erreur={erreursAvocat.barreau}>
             <NativeSelect
               id="avocat-barreau"
               value={avocat.barreau}
               onChange={(event) => setAvocat({ ...avocat, barreau: event.target.value })}
               aria-invalid={Boolean(erreursAvocat.barreau)}
+              aria-describedby={erreursAvocat.barreau ? "avocat-barreau-erreur" : undefined}
               className="w-full [&_select]:h-14 [&_select]:text-lg"
             >
               {BARREAUX.map((barreau) => (
@@ -377,16 +404,18 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
 
       {etape === 3 && !confirmationRefus && (
         <form onSubmit={validerChoix} noValidate className="flex flex-col gap-6">
-          <fieldset className="flex flex-col gap-4">
+          <fieldset className="flex flex-col gap-4" aria-describedby={erreur ? "erreur-etape" : undefined}>
             <legend className="mb-4 flex flex-col gap-2">
-              <span className="text-2xl font-bold">Position de votre client</span>
+              <span className="text-2xl font-bold">
+                Position de votre client <span className="text-lg font-normal">(obligatoire)</span>
+              </span>
               <span className="text-lg">
                 {majuscule(mots.laProcedure)} est une démarche amiable : {mots.leTiers} aide les
                 parties à trouver une solution ensemble.
               </span>
             </legend>
             {(Object.keys(choixPossibles) as Choix[]).map((valeur) => (
-              <GrandChoix key={valeur} name="choix" checked={choix === valeur}
+              <GrandChoix key={valeur} id={`choix-${valeur}`} name="choix" checked={choix === valeur}
                 titre={choixPossibles[valeur].titre} aide={choixPossibles[valeur].aide}
                 onChange={() => {
                   setChoix(valeur)
@@ -394,7 +423,7 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
                 }} />
             ))}
           </fieldset>
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <GrandBouton>Continuer</GrandBouton>
           <BoutonRetour onClick={() => allerA(2)} />
         </form>
@@ -403,13 +432,13 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
       {etape === 3 && confirmationRefus && (
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Confirmez-vous le refus de votre client&nbsp;?</h1>
+            <h2 className="text-2xl font-bold">Confirmez-vous le refus de votre client&nbsp;?</h2>
             <p className="text-lg">
               Vous indiquez que votre client, {nomClient}, refuse {mots.laProcedure} proposée par
               le juge dans le dossier n° {numeroRg}. Le juge sera informé de ce choix.
             </p>
           </div>
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <Button size="lg" className="h-14 w-full text-lg" onClick={confirmerRefus} disabled={enCours}>
             {enCours ? "Enregistrement…" : `Oui, mon client refuse ${mots.laProcedure}`}
           </Button>
@@ -431,7 +460,7 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
       {etape === 4 && (
         <form onSubmit={validerClient} noValidate className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Votre client</h1>
+            <h2 className="text-2xl font-bold">Votre client</h2>
             <p className="text-lg">Coordonnées de votre client, si vous les avez.</p>
           </div>
           <CaseACocher
@@ -443,11 +472,11 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
           >
             Mon client souhaite que {mots.leTiers} passe par moi.
           </CaseACocher>
-          <ChampTexte id="client-telephone" type="tel" placeholder="0692 12 34 56" autoComplete="off"
-            label={client.passerParAvocat ? "Téléphone du client (facultatif)" : "Téléphone du client"}
+          <ChampTexte id="client-telephone" type="tel" placeholder="Ex. : 0692 12 34 56" autoComplete="off"
+            label={client.passerParAvocat ? "Téléphone du client (facultatif)" : "Téléphone du client (obligatoire)"}
             valeur={client.telephone} erreur={erreursClient.telephone}
             onChange={(v) => changerClient("telephone", v)} />
-          <ChampTexte id="client-email" type="email" placeholder="nom@exemple.fr" autoComplete="off"
+          <ChampTexte id="client-email" type="email" placeholder="Ex. : nom@exemple.fr" autoComplete="off"
             label="E-mail du client (facultatif)" valeur={client.email} erreur={erreursClient.email}
             onChange={(v) => changerClient("email", v)} />
 
@@ -484,24 +513,26 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
       {etape === 5 && (
         <form onSubmit={validerConsentement} noValidate className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Accord</h1>
+            <h2 className="text-2xl font-bold">Accord</h2>
             <p className="text-lg">
               Ces informations seront transmises <strong>uniquement</strong> {mots.auTiers} désigné
               par le juge, pour organiser {mots.laProcedure}.
             </p>
           </div>
           <CaseACocher
+            id="zone-consentement"
             coche={consentement}
             invalide={Boolean(erreur)}
+            decritPar={erreur ? "erreur-etape" : undefined}
             onChange={(coche) => {
               setConsentement(coche)
               setErreur(null)
             }}
           >
             J&apos;agis pour le compte de mon client et j&apos;accepte que ces informations soient
-            transmises {mots.auTiers} désigné.
+            transmises {mots.auTiers} désigné (obligatoire).
           </CaseACocher>
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <GrandBouton>Continuer</GrandBouton>
           <BoutonRetour onClick={() => allerA(4)} />
         </form>
@@ -510,32 +541,36 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
       {etape === 6 && (
         <form onSubmit={validerPreferences} noValidate className="flex flex-col gap-8">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Premier rendez-vous</h1>
+            <h2 className="text-2xl font-bold">Premier rendez-vous</h2>
             <p className="text-lg">
               Indiquez ce qui convient à votre client. {majuscule(mots.leTiers)} en tiendra compte.
             </p>
           </div>
-          <fieldset className="flex flex-col gap-3">
-            <legend className="mb-3 text-lg font-bold">Votre client souhaite être reçu&nbsp;:</legend>
+          <fieldset className="flex flex-col gap-3" aria-describedby={erreur && !prefFormat ? "erreur-etape" : undefined}>
+            <legend className="mb-3 text-lg font-bold">
+              Votre client souhaite être reçu&nbsp;: <span className="font-normal">(obligatoire)</span>
+            </legend>
             {(Object.keys(TEXTES_FORMAT) as Enums<"preference_format">[]).map((valeur) => (
-              <GrandChoix key={valeur} name="pref_format" titre={TEXTES_FORMAT[valeur]} checked={prefFormat === valeur}
+              <GrandChoix key={valeur} id={`pref_format-${valeur}`} name="pref_format" titre={TEXTES_FORMAT[valeur]} checked={prefFormat === valeur}
                 onChange={() => {
                   setPrefFormat(valeur)
                   setErreur(null)
                 }} />
             ))}
           </fieldset>
-          <fieldset className="flex flex-col gap-3">
-            <legend className="mb-3 text-lg font-bold">Comment&nbsp;?</legend>
+          <fieldset className="flex flex-col gap-3" aria-describedby={erreur && !prefLieu ? "erreur-etape" : undefined}>
+            <legend className="mb-3 text-lg font-bold">
+              Comment&nbsp;? <span className="font-normal">(obligatoire)</span>
+            </legend>
             {(Object.keys(TEXTES_LIEU) as Enums<"preference_lieu">[]).map((valeur) => (
-              <GrandChoix key={valeur} name="pref_lieu" titre={TEXTES_LIEU[valeur]} checked={prefLieu === valeur}
+              <GrandChoix key={valeur} id={`pref_lieu-${valeur}`} name="pref_lieu" titre={TEXTES_LIEU[valeur]} checked={prefLieu === valeur}
                 onChange={() => {
                   setPrefLieu(valeur)
                   setErreur(null)
                 }} />
             ))}
           </fieldset>
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <GrandBouton>Continuer</GrandBouton>
           <BoutonRetour onClick={() => allerA(5)} />
         </form>
@@ -544,7 +579,7 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
       {etape === 7 && (
         <form onSubmit={envoyer} noValidate className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Disponibilités</h1>
+            <h2 className="text-2xl font-bold">Disponibilités</h2>
             <p className="text-lg">
               {jours.length > 0
                 ? "Cochez toutes les dates qui conviennent pour le premier rendez-vous."
@@ -574,7 +609,7 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
             </p>
           )}
 
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <GrandBouton disabled={enCours}>{enCours ? "Envoi en cours…" : "Envoyer la réponse"}</GrandBouton>
           <BoutonRetour onClick={() => allerA(6)} disabled={enCours} />
         </form>
@@ -583,19 +618,23 @@ export function ParcoursAvocat({ token, mode, jours }: Props) {
   )
 }
 
-function BarreProgression({ etape }: { etape: number }) {
+/**
+ * Titre de la page (h1) « Étape 2 sur 7 : Vos coordonnées », qui reçoit le
+ * focus à chaque changement d'étape, puis la barre de progression.
+ */
+function BarreProgression({ etape, titreRef }: { etape: number; titreRef: React.Ref<HTMLHeadingElement> }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-base font-medium">
+      <h1 ref={titreRef} tabIndex={-1} className="text-base font-medium">
         Étape {etape} sur {TITRES_ETAPES.length} : {TITRES_ETAPES[etape - 1]}
-      </p>
+      </h1>
       <div
         role="progressbar"
         aria-valuemin={1}
         aria-valuemax={TITRES_ETAPES.length}
         aria-valuenow={etape}
         aria-valuetext={`Étape ${etape} sur ${TITRES_ETAPES.length} : ${TITRES_ETAPES[etape - 1]}`}
-        aria-label="Progression"
+        aria-label="Progression du formulaire"
         className="flex gap-1.5"
       >
         {TITRES_ETAPES.map((titre, index) => (
@@ -611,12 +650,14 @@ function BarreProgression({ etape }: { etape: number }) {
 
 /** Grande option à choix unique (bouton radio), facile à toucher sur téléphone. */
 function GrandChoix({
+  id,
   name,
   titre,
   aide,
   checked,
   onChange,
 }: {
+  id: string
   name: string
   titre: string
   aide?: string
@@ -630,7 +671,7 @@ function GrandChoix({
         checked ? "border-primary bg-secondary" : "border-input"
       )}
     >
-      <input type="radio" name={name} checked={checked} onChange={onChange} className="mt-1 size-5 shrink-0 accent-primary" />
+      <input type="radio" id={id} name={name} checked={checked} onChange={onChange} className="mt-1 size-5 shrink-0 accent-primary" />
       <span className="flex flex-col gap-1">
         <span className="text-lg font-medium">{titre}</span>
         {aide && <span className="text-base text-muted-foreground">{aide}</span>}
@@ -640,25 +681,30 @@ function GrandChoix({
 }
 
 function CaseACocher({
+  id,
   coche,
   invalide,
+  decritPar,
   onChange,
   children,
 }: {
+  id?: string
   coche: boolean
   invalide?: boolean
+  decritPar?: string
   onChange: (coche: boolean) => void
   children: React.ReactNode
 }) {
   return (
     <label
+      id={id}
       className={cn(
         "flex min-h-14 cursor-pointer items-start gap-4 rounded-sm border-2 px-4 py-3 text-lg",
         coche ? "border-primary bg-secondary" : "border-input",
         invalide && "border-destructive"
       )}
     >
-      <Checkbox checked={coche} onCheckedChange={onChange} aria-invalid={invalide} className="mt-1 size-6 [&_svg]:size-5" />
+      <Checkbox checked={coche} onCheckedChange={onChange} aria-invalid={invalide} aria-describedby={decritPar} className="mt-1 size-6 [&_svg]:size-5" />
       <span>{children}</span>
     </label>
   )
@@ -681,7 +727,7 @@ function Champ({
         {label}
       </Label>
       {children}
-      <MessageErreur erreur={erreur} />
+      <MessageErreur id={`${id}-erreur`} erreur={erreur} />
     </div>
   )
 }
@@ -692,7 +738,7 @@ function ChampTexte({
   valeur,
   onChange,
   erreur,
-  invalide,
+  decritPar,
   type = "text",
   placeholder,
   autoComplete,
@@ -703,7 +749,8 @@ function ChampTexte({
   valeur: string
   onChange: (valeur: string) => void
   erreur?: string
-  invalide?: boolean
+  /** id d'un message d'erreur commun à plusieurs champs */
+  decritPar?: string
   type?: "text" | "tel" | "email"
   placeholder?: string
   autoComplete?: string
@@ -720,17 +767,19 @@ function ChampTexte({
         placeholder={placeholder}
         value={valeur}
         onChange={(event) => onChange(event.target.value)}
-        aria-invalid={Boolean(erreur) || invalide}
+        aria-invalid={Boolean(erreur || decritPar)}
+        aria-describedby={[erreur && `${id}-erreur`, decritPar].filter(Boolean).join(" ") || undefined}
         className="h-14 text-lg md:text-lg"
       />
     </Champ>
   )
 }
 
-function MessageErreur({ erreur }: { erreur?: string | null }) {
+/** Message d'erreur annoncé (role="alert"), relié au champ par son id. */
+function MessageErreur({ id, erreur }: { id: string; erreur?: string | null }) {
   if (!erreur) return null
   return (
-    <p role="alert" className="text-base font-medium text-destructive">
+    <p id={id} role="alert" tabIndex={-1} className="text-base font-medium text-destructive">
       {erreur}
     </p>
   )

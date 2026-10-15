@@ -13,7 +13,7 @@ import { MODE_DEMO } from "@/lib/demo/mode"
 import { FormulaireConnexion } from "./formulaire-connexion"
 
 export const metadata: Metadata = {
-  title: "Connexion — Médiation",
+  title: "Connexion",
 }
 
 export default function PageConnexion() {
@@ -21,7 +21,9 @@ export default function PageConnexion() {
     <main className="flex flex-1 items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-lg">Espace juridiction et médiateur</CardTitle>
+          <CardTitle>
+            <h1 className="text-lg font-bold">Connexion aux espaces juridiction et médiateur</h1>
+          </CardTitle>
           <CardDescription>
             Prototype · Hackathon Justice Tech 2026 — connectez-vous pour suivre vos
             dossiers de médiation.

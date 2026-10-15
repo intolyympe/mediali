@@ -5,6 +5,7 @@ import { Suspense } from "react"
 
 import { RelanceButton } from "@/components/relance-button"
 import { BadgeDsfr, BadgeIssue, BadgeStatut, type TypeBadge } from "@/components/dsfr/statut-badge"
+import { ActualisationTempsReel } from "@/components/temps-reel-dossier"
 import { Timeline, type EvenementTimeline } from "@/components/timeline"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,14 +13,14 @@ import { lireMediateurId } from "@/lib/roles"
 import { LIBELLES_ISSUE, LIBELLES_MODE, LIBELLES_ROLE, trierParties } from "@/lib/statuts"
 import type { Enums, Json, Tables } from "@/lib/supabase/database.types"
 import { createClient } from "@/lib/supabase/server"
+import { titreDossier } from "@/lib/titres"
 
 import { estConfirmee, filtreIntervenant, libelleChoix, mots } from "../../donnees"
 import { ActionsMediateur, type CreneauPropose, type PartieAction } from "./actions-mediateur"
 import { InterrupteurProvision } from "./interrupteur-provision"
-import { ActualisationTempsReel } from "./temps-reel"
 
-export const metadata: Metadata = {
-  title: "Dossier — Espace médiateur",
+export function generateMetadata({ params }: PageProps<"/mediateur/dossiers/[id]">): Promise<Metadata> {
+  return titreDossier(params, "Espace médiateur")
 }
 
 const FUSEAU = "Indian/Reunion"
@@ -235,7 +236,7 @@ async function DetailDossier({ params }: { params: Promise<{ id: string }> }) {
             <h2 id="titre-timeline" className="text-xl font-bold">
               Historique
             </h2>
-            <ActualisationTempsReel dossierId={dossier.id} />
+            <ActualisationTempsReel dossierId={dossier.id} statut={dossier.statut} />
           </div>
           <Timeline
             evenements={evenements}

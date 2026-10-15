@@ -25,6 +25,8 @@ const MODES = [
   { valeur: "conciliation", titre: "Conciliation", aide: "Un conciliateur de justice recherche un accord amiable." },
 ] as const
 
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 const partieVide = (cle: string, role: Enums<"role_partie">): PartieSaisie => ({
   cle,
   role,
@@ -49,6 +51,8 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
   const [parties, setParties] = useState([partieVide("p1", "demandeur"), partieVide("p2", "defendeur")])
   const [coordonneesOuvertes, setCoordonneesOuvertes] = useState<string[]>([])
   const [erreur, setErreur] = useState<string | null>(null)
+  // Erreurs par champ, indexées par l'id du champ (mêmes règles que le serveur)
+  const [erreurs, setErreurs] = useState<Record<string, string>>({})
   const [enCours, demarrer] = useTransition()
   const compteur = useRef(3)
 
@@ -58,8 +62,18 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
   const coProposes = proposes.filter((intervenant) => intervenant.id !== dossier.mediateur_id)
   const plusDeDeuxParties = parties.length > 2
 
+  function effacerErreur(id: string) {
+    setErreurs((actuelles) => {
+      if (!(id in actuelles)) return actuelles
+      const copie = { ...actuelles }
+      delete copie[id]
+      return copie
+    })
+  }
+
   function changerDossier(champ: keyof typeof dossier, valeur: string) {
     setDossier((actuel) => ({ ...actuel, [champ]: valeur }))
+    effacerErreur(champ)
   }
 
   function changerMode(mode: Enums<"mode_amiable">) {
@@ -69,6 +83,7 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
 
   function changerPartie(cle: string, champ: keyof PartieSaisie, valeur: string) {
     setParties((actuelles) => actuelles.map((p) => (p.cle === cle ? { ...p, [champ]: valeur } : p)))
+    effacerErreur(`${cle}-${champ}`)
   }
 
   function ajouterPartie(role: Enums<"role_partie">) {
@@ -87,9 +102,41 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
     )
   }
 
+  /** Erreurs par id de champ, dans l'ordre d'affichage du formulaire. */
+  function verifier() {
+    const trouvees: [string, string][] = []
+    if (!dossier.numero_rg.trim()) trouvees.push(["numero_rg", "Indiquez le numéro RG."])
+    if (!dossier.juridiction.trim()) trouvees.push(["juridiction", "Indiquez la juridiction."])
+    if (!dossier.date_ordonnance) trouvees.push(["date_ordonnance", "Indiquez la date de l'ordonnance."])
+    if (!dossier.mediateur_id) {
+      trouvees.push(["mediateur_id", conciliation ? "Choisissez un conciliateur." : "Choisissez un médiateur."])
+    }
+    for (const role of ["demandeur", "defendeur"] as const) {
+      for (const partie of parties.filter((p) => p.role === role)) {
+        if (!partie.nom.trim()) trouvees.push([`${partie.cle}-nom`, "Indiquez le nom."])
+        if (!partie.prenom.trim()) trouvees.push([`${partie.cle}-prenom`, "Indiquez le prénom."])
+        if (partie.email.trim() && !EMAIL.test(partie.email.trim())) {
+          trouvees.push([`${partie.cle}-email`, "Cette adresse e-mail n'est pas valide. Exemple : nom@exemple.fr."])
+        }
+      }
+    }
+    return trouvees
+  }
+
   function envoyer(event: React.FormEvent) {
     event.preventDefault()
+    if (enCours) return
     setErreur(null)
+    const trouvees = verifier()
+    setErreurs(Object.fromEntries(trouvees))
+    if (trouvees.length > 0) {
+      // Une adresse e-mail invalide est dans un bloc replié : on le rouvre
+      const aRouvrir = parties.filter((p) => trouvees.some(([id]) => id === `${p.cle}-email`)).map((p) => p.cle)
+      setCoordonneesOuvertes((ouvertes) => [...new Set([...ouvertes, ...aRouvrir])])
+      const premier = trouvees[0][0]
+      requestAnimationFrame(() => document.getElementById(premier)?.focus())
+      return
+    }
     const saisie: DossierSaisi = {
       ...dossier,
       co_mediateur_id: plusDeDeuxParties ? dossier.co_mediateur_id : "",
@@ -98,12 +145,15 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
     demarrer(async () => {
       // En cas de succès, l'action redirige vers la page du dossier
       const resultat = await creerDossier(saisie)
-      if (resultat?.erreur) setErreur(resultat.erreur)
+      if (!resultat?.erreur) return
+      setErreur(resultat.erreur)
+      // Focus sur le message pour qu'il soit lu et visible
+      requestAnimationFrame(() => document.getElementById("erreur-creation")?.focus())
     })
   }
 
   return (
-    <form onSubmit={envoyer} className="flex flex-col gap-10">
+    <form noValidate onSubmit={envoyer} className="flex flex-col gap-10">
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-3 text-lg font-bold">Type de procédure</legend>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -134,17 +184,18 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
 
       <fieldset className="grid gap-4 sm:grid-cols-2">
         <legend className="mb-3 text-lg font-bold">Dossier</legend>
-        <Champ id="numero_rg" libelle="Numéro RG" requis placeholder="26/00123"
+        <Champ id="numero_rg" libelle="Numéro RG" requis placeholder="Ex. : 26/00123" erreur={erreurs.numero_rg}
           valeur={dossier.numero_rg} onChange={(v) => changerDossier("numero_rg", v)} />
-        <Champ id="juridiction" libelle="Juridiction" requis
+        <Champ id="juridiction" libelle="Juridiction" requis erreur={erreurs.juridiction}
           valeur={dossier.juridiction} onChange={(v) => changerDossier("juridiction", v)} />
-        <Champ id="date_ordonnance" libelle="Date de l'ordonnance" requis type="date"
+        <Champ id="date_ordonnance" libelle="Date de l'ordonnance" requis type="date" erreur={erreurs.date_ordonnance}
           valeur={dossier.date_ordonnance} onChange={(v) => changerDossier("date_ordonnance", v)} />
         <div className="flex flex-col gap-2">
-          <Label htmlFor="mediateur_id">{conciliation ? "Conciliateur" : "Médiateur"}</Label>
+          <Label htmlFor="mediateur_id">{conciliation ? "Conciliateur" : "Médiateur"} (obligatoire)</Label>
           <NativeSelect
             id="mediateur_id"
-            required
+            aria-invalid={erreurs.mediateur_id ? true : undefined}
+            aria-describedby={erreurs.mediateur_id ? "mediateur_id-erreur" : undefined}
             value={dossier.mediateur_id}
             onChange={(event) => changerDossier("mediateur_id", event.target.value)}
             className="w-full"
@@ -158,6 +209,7 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
               </NativeSelectOption>
             ))}
           </NativeSelect>
+          <MessageErreur id="mediateur_id-erreur" erreur={erreurs.mediateur_id} />
           {proposes.length === 0 && (
             <p className="text-sm text-destructive">
               Aucun {conciliation ? "conciliateur" : "médiateur"} enregistré.
@@ -178,6 +230,7 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
                 key={partie.cle}
                 partie={partie}
                 titre={`${LIBELLES_ROLE[role]} ${duRole.length > 1 ? index + 1 : ""}`.trim()}
+                erreurs={erreurs}
                 retirable={duRole.length > 1}
                 coordonneesOuvertes={coordonneesOuvertes.includes(partie.cle)}
                 onChange={(champ, valeur) => changerPartie(partie.cle, champ, valeur)}
@@ -220,12 +273,12 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
       )}
 
       {erreur && (
-        <p role="alert" className="font-medium text-destructive">
+        <p id="erreur-creation" role="alert" tabIndex={-1} className="font-medium text-destructive">
           {erreur}
         </p>
       )}
 
-      <Button type="submit" size="lg" disabled={enCours} className="self-start">
+      <Button type="submit" size="lg" aria-disabled={enCours || undefined} className="self-start">
         {enCours ? "Création…" : "Créer le dossier"}
       </Button>
     </form>
@@ -235,6 +288,7 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
 function FichePartie({
   partie,
   titre,
+  erreurs,
   retirable,
   coordonneesOuvertes,
   onChange,
@@ -243,6 +297,7 @@ function FichePartie({
 }: {
   partie: PartieSaisie
   titre: string
+  erreurs: Record<string, string>
   retirable: boolean
   coordonneesOuvertes: boolean
   onChange: (champ: keyof PartieSaisie, valeur: string) => void
@@ -253,7 +308,7 @@ function FichePartie({
   return (
     <div className="flex flex-col gap-4 rounded-sm border border-border p-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-bold">{titre}</h3>
+        <h2 className="font-bold">{titre}</h2>
         {retirable && (
           <Button type="button" variant="ghost" size="sm" onClick={onRetirer}>
             Retirer<span className="sr-only"> {titre}</span>
@@ -261,8 +316,10 @@ function FichePartie({
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Champ id={id("nom")} libelle="Nom" requis valeur={partie.nom} onChange={(v) => onChange("nom", v)} />
-        <Champ id={id("prenom")} libelle="Prénom" requis valeur={partie.prenom} onChange={(v) => onChange("prenom", v)} />
+        <Champ id={id("nom")} libelle="Nom" requis erreur={erreurs[id("nom")]}
+          valeur={partie.nom} onChange={(v) => onChange("nom", v)} />
+        <Champ id={id("prenom")} libelle="Prénom" requis erreur={erreurs[id("prenom")]}
+          valeur={partie.prenom} onChange={(v) => onChange("prenom", v)} />
         <Champ id={id("avocat")} libelle="Avocat (facultatif)" valeur={partie.avocat_nom}
           onChange={(v) => onChange("avocat_nom", v)} />
       </div>
@@ -282,7 +339,7 @@ function FichePartie({
             onChange={(v) => onChange("telephone", v)} />
           <Champ id={id("telephone-2")} libelle="Téléphone 2" type="tel" valeur={partie.telephone_2}
             onChange={(v) => onChange("telephone_2", v)} />
-          <Champ id={id("email")} libelle="E-mail" type="email" valeur={partie.email}
+          <Champ id={id("email")} libelle="E-mail" type="email" valeur={partie.email} erreur={erreurs[id("email")]}
             onChange={(v) => onChange("email", v)} />
           <Champ id={id("adresse")} libelle="Adresse" valeur={partie.adresse}
             onChange={(v) => onChange("adresse", v)} />
@@ -300,6 +357,7 @@ function Champ({
   type = "text",
   requis = false,
   placeholder,
+  erreur,
 }: {
   id: string
   libelle: string
@@ -308,18 +366,36 @@ function Champ({
   type?: string
   requis?: boolean
   placeholder?: string
+  erreur?: string
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{libelle}</Label>
+      <Label htmlFor={id}>
+        {libelle}
+        {requis && " (obligatoire)"}
+      </Label>
       <Input
         id={id}
         type={type}
-        required={requis}
+        // Coordonnées d'autres personnes : pas de remplissage automatique
+        autoComplete="off"
+        aria-invalid={erreur ? true : undefined}
+        aria-describedby={erreur ? `${id}-erreur` : undefined}
         placeholder={placeholder}
         value={valeur}
         onChange={(event) => onChange(event.target.value)}
       />
+      <MessageErreur id={`${id}-erreur`} erreur={erreur} />
     </div>
+  )
+}
+
+/** Message d'erreur annoncé (role="alert"), relié au champ par son id. */
+function MessageErreur({ id, erreur }: { id: string; erreur?: string }) {
+  if (!erreur) return null
+  return (
+    <p id={id} role="alert" className="text-sm font-medium text-destructive">
+      {erreur}
+    </p>
   )
 }

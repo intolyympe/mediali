@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server"
 import { FormulaireDossier } from "./formulaire-dossier"
 
 export const metadata: Metadata = {
-  title: "Nouveau dossier — Espace juridiction",
+  title: "Nouveau dossier – Espace juridiction",
 }
 
 export default function NouveauDossier() {

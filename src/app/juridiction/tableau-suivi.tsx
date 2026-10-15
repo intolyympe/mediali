@@ -13,6 +13,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -122,7 +123,7 @@ export function TableauSuivi({
           <Filtre id="filtre-mode" libelle="Mode" valeur={mode} onChange={setMode} options={LIBELLES_MODE} />
           <Filtre id="filtre-statut" libelle="Statut" valeur={statut} onChange={setStatut} options={LIBELLES_STATUT} />
           <Filtre id="filtre-issue" libelle="Issue" valeur={issue} onChange={setIssue} options={LIBELLES_ISSUE} />
-          <Label className="flex h-10 cursor-pointer items-center gap-2 font-normal">
+          <Label className="flex min-h-11 cursor-pointer items-center gap-2 font-normal sm:min-h-10">
             <Checkbox checked={sansReponse} onCheckedChange={setSansReponse} />
             Sans réponse depuis plus de 7 jours
           </Label>
@@ -137,16 +138,20 @@ export function TableauSuivi({
           <p className="text-muted-foreground">Aucun dossier ne correspond à ces filtres.</p>
         ) : (
           <Table>
+            <TableCaption className="sr-only">
+              Dossiers de médiation et de conciliation : {affiches.length} sur {dossiers.length}
+              {filtre ? " (filtres appliqués)" : ""}
+            </TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead>N° RG</TableHead>
-                <TableHead>Mode</TableHead>
-                <TableHead>Intervenant(s)</TableHead>
-                <TableHead>Réponses</TableHead>
-                <TableHead>Choix des parties</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Issue</TableHead>
-                <TableHead className="text-right">Jours écoulés</TableHead>
+                <TableHead scope="col">N° RG</TableHead>
+                <TableHead scope="col">Mode</TableHead>
+                <TableHead scope="col">Intervenant(s)</TableHead>
+                <TableHead scope="col">Réponses</TableHead>
+                <TableHead scope="col">Choix des parties</TableHead>
+                <TableHead scope="col">Statut</TableHead>
+                <TableHead scope="col">Issue</TableHead>
+                <TableHead scope="col" className="text-right">Jours écoulés</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -155,11 +160,11 @@ export function TableauSuivi({
                 const enRetard = sansReponseDepuis7Jours(dossier, maintenant)
                 return (
                   <TableRow key={dossier.id} className="align-top">
-                    <TableCell className="font-bold">
+                    <TableHead scope="row" className="h-auto p-2 align-top font-bold">
                       <Link href={`/juridiction/dossiers/${dossier.id}`} className="text-primary underline">
                         {dossier.numero_rg}
                       </Link>
-                    </TableCell>
+                    </TableHead>
                     <TableCell>{LIBELLES_MODE[dossier.mode]}</TableCell>
                     <TableCell className="whitespace-normal">
                       {dossier.mediateur?.nom ?? "—"}

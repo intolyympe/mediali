@@ -8,7 +8,7 @@ import { ParcoursPartie } from "./parcours-partie"
 import { vocabulaire } from "./vocabulaire"
 
 export const metadata: Metadata = {
-  title: "Vos coordonnées — Médiation",
+  title: "Votre réponse",
 }
 
 // Page publique ouverte en scannant le QR code de la notification (personne 3).

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import { BadgeIssue, BadgeStatut } from "@/components/dsfr/statut-badge"
+import { ActualisationTempsReel } from "@/components/temps-reel-dossier"
 import { Timeline, type EvenementTimeline } from "@/components/timeline"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,12 +13,13 @@ import { MODE_DEMO } from "@/lib/demo/mode"
 import { LIBELLES_CHOIX, LIBELLES_MODE, LIBELLES_ROLE, trierParties } from "@/lib/statuts"
 import type { Json } from "@/lib/supabase/database.types"
 import { createClient } from "@/lib/supabase/server"
+import { titreDossier } from "@/lib/titres"
 import { urlPartie } from "@/lib/url"
 
-import { ActualisationTempsReel, BoutonImprimer, QRCodeSVG } from "./client"
+import { BoutonImprimer, QRCodeSVG } from "./client"
 
-export const metadata: Metadata = {
-  title: "Dossier — Espace juridiction",
+export function generateMetadata({ params }: PageProps<"/juridiction/dossiers/[id]">): Promise<Metadata> {
+  return titreDossier(params, "Espace juridiction")
 }
 
 export default function PageDossier({ params }: PageProps<"/juridiction/dossiers/[id]">) {
@@ -113,7 +115,13 @@ async function DetailDossier({ params }: Pick<PageProps<"/juridiction/dossiers/[
                 </p>
               </CardHeader>
               <CardContent className="flex flex-col items-center gap-4 text-center">
-                <QRCodeSVG value={url} size={200} marginSize={2} title={`QR code de ${partie.prenom} ${partie.nom}`} />
+                <QRCodeSVG
+                  value={url}
+                  size={200}
+                  marginSize={2}
+                  role="img"
+                  aria-label={`QR code vers le parcours de ${partie.prenom} ${partie.nom}`}
+                />
                 <p className="font-mono text-xs break-all">{url}</p>
                 {/* Démo : tester le parcours sans téléphone */}
                 {MODE_DEMO && (
@@ -145,7 +153,7 @@ async function DetailDossier({ params }: Pick<PageProps<"/juridiction/dossiers/[
           <h2 id="titre-timeline" className="text-xl font-bold">
             Historique du dossier
           </h2>
-          <ActualisationTempsReel dossierId={dossier.id} />
+          <ActualisationTempsReel dossierId={dossier.id} statut={dossier.statut} />
         </div>
         <Timeline evenements={evenements} titre={`Historique du dossier n° ${dossier.numero_rg}`} />
       </section>

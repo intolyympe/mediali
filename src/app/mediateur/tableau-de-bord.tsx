@@ -50,6 +50,8 @@ export function TableauDeBord({
 }) {
   const [dossiers, setDossiers] = useState(dossiersInitiaux)
   const [enFlash, setEnFlash] = useState<Set<string>>(new Set())
+  // Annonce des changements de statut aux lecteurs d'écran (aria-live)
+  const [annonce, setAnnonce] = useState("")
   const statutsPrecedents = useRef(new Map(dossiersInitiaux.map((d) => [d.id, d.statut])))
 
   useEffect(() => {
@@ -64,12 +66,16 @@ export function TableauDeBord({
       if (!data) return
 
       // Dossiers dont le statut vient de changer : flash vert sur la carte
-      const changes = data
-        .filter((d) => {
-          const avant = statutsPrecedents.current.get(d.id)
-          return avant !== undefined && avant !== d.statut
-        })
-        .map((d) => d.id)
+      const dossiersChanges = data.filter((d) => {
+        const avant = statutsPrecedents.current.get(d.id)
+        return avant !== undefined && avant !== d.statut
+      })
+      const changes = dossiersChanges.map((d) => d.id)
+      if (dossiersChanges.length > 0) {
+        setAnnonce(
+          dossiersChanges.map((d) => `Dossier ${d.numero_rg} : ${LIBELLES_STATUT[d.statut]}.`).join(" ")
+        )
+      }
       statutsPrecedents.current = new Map(data.map((d) => [d.id, d.statut]))
       setDossiers(data)
 
@@ -112,6 +118,9 @@ export function TableauDeBord({
 
   return (
     <>
+      <p role="status" aria-live="polite" className="sr-only">
+        {annonce}
+      </p>
       <section aria-label="Indicateurs">
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {STATUTS.map((statut) => (
@@ -210,67 +219,70 @@ function CarteDossier({
   const repondu = parties.filter(estConfirmee).length
 
   return (
-    <Link
-      href={`/mediateur/dossiers/${dossier.id}`}
-      className="block h-full rounded-sm text-foreground no-underline"
-      aria-label={`Dossier n° ${dossier.numero_rg}`}
+    // Toute la carte est cliquable (lien étiré sur le titre), mais seul le
+    // titre est un lien : le reste de la carte reste lisible au lecteur d'écran
+    <Card
+      className={cn(
+        "relative h-full transition-colors duration-1000 hover:ring-primary motion-reduce:transition-none",
+        flash && "bg-[#b8fec9] duration-150",
+        enRetard && "ring-2 ring-destructive hover:ring-destructive"
+      )}
     >
-      <Card
-        className={cn(
-          "h-full transition-colors duration-1000 hover:ring-primary",
-          flash && "bg-[#b8fec9] duration-150",
-          enRetard && "ring-2 ring-destructive hover:ring-destructive"
-        )}
-      >
-        <CardHeader className="gap-2">
-          <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg">
-            <span className="text-primary">Dossier n° {dossier.numero_rg}</span>
-            <BadgeStatut statut={dossier.statut} />
-          </CardTitle>
-          <div className="flex flex-wrap gap-2">
-            <BadgeDsfr type="information">{LIBELLES_MODE[dossier.mode]}</BadgeDsfr>
-            {dossier.co_mediateur_id && (
-              <BadgeDsfr type="neutre">
-                {mots(dossier.mode).coTiers}
-                {coIntervenant ? " (vous êtes co-intervenant)" : ""}
-              </BadgeDsfr>
-            )}
-            {dossier.issue !== "en_cours" && <BadgeIssue issue={dossier.issue} />}
-          </div>
-          <p className={enRetard ? "text-sm font-medium text-destructive" : "text-sm text-muted-foreground"}>
-            Ordonnance du {formatDate.format(new Date(dossier.date_ordonnance))} ·{" "}
-            {/* Date dans le futur : erreur de saisie probable */}
-            {jours < 0 ? "date à vérifier" : `${jours} jour${jours > 1 ? "s" : ""}`}
-            {enRetard && " · réponses incomplètes depuis plus de 7 jours"}
-          </p>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <p className="font-medium">
-            {repondu}/{parties.length} partie{parties.length > 1 ? "s" : ""} ayant répondu
-          </p>
-          <ul className="flex flex-col gap-1.5 text-sm">
-            {parties.map((partie) => {
-              const confirmee = estConfirmee(partie)
-              return (
-                <li key={partie.id} className="flex flex-wrap items-center gap-2">
-                  <span
-                    aria-hidden
-                    className={cn("size-2.5 shrink-0 rounded-full", confirmee ? "bg-succes" : "bg-input")}
-                  />
-                  <span>
-                    {partie.prenom} {partie.nom}{" "}
-                    <span className="text-muted-foreground">({LIBELLES_ROLE[partie.role].toLowerCase()})</span> :{" "}
-                    <span className={confirmee ? "font-medium" : "text-muted-foreground"}>
-                      {libelleChoix(partie, dossier.mode)}
-                    </span>
+      <CardHeader className="gap-2">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg">
+          <h3>
+            <Link
+              href={`/mediateur/dossiers/${dossier.id}`}
+              className="text-primary underline underline-offset-4 after:absolute after:inset-0"
+            >
+              Dossier n° {dossier.numero_rg}
+            </Link>
+          </h3>
+          <BadgeStatut statut={dossier.statut} />
+        </CardTitle>
+        <div className="flex flex-wrap gap-2">
+          <BadgeDsfr type="information">{LIBELLES_MODE[dossier.mode]}</BadgeDsfr>
+          {dossier.co_mediateur_id && (
+            <BadgeDsfr type="neutre">
+              {mots(dossier.mode).coTiers}
+              {coIntervenant ? " (vous êtes co-intervenant)" : ""}
+            </BadgeDsfr>
+          )}
+          {dossier.issue !== "en_cours" && <BadgeIssue issue={dossier.issue} />}
+        </div>
+        <p className={enRetard ? "text-sm font-medium text-destructive" : "text-sm text-muted-foreground"}>
+          Ordonnance du {formatDate.format(new Date(dossier.date_ordonnance))} ·{" "}
+          {/* Date dans le futur : erreur de saisie probable */}
+          {jours < 0 ? "date à vérifier" : `${jours} jour${jours > 1 ? "s" : ""}`}
+          {enRetard && " · réponses incomplètes depuis plus de 7 jours"}
+        </p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        <p className="font-medium">
+          {repondu}/{parties.length} partie{parties.length > 1 ? "s" : ""} ayant répondu
+        </p>
+        <ul className="flex flex-col gap-1.5 text-sm">
+          {parties.map((partie) => {
+            const confirmee = estConfirmee(partie)
+            return (
+              <li key={partie.id} className="flex flex-wrap items-center gap-2">
+                <span
+                  aria-hidden
+                  className={cn("size-2.5 shrink-0 rounded-full", confirmee ? "bg-succes" : "bg-input")}
+                />
+                <span>
+                  {partie.prenom} {partie.nom}{" "}
+                  <span className="text-muted-foreground">({LIBELLES_ROLE[partie.role].toLowerCase()})</span> :{" "}
+                  <span className={confirmee ? "font-medium" : "text-muted-foreground"}>
+                    {libelleChoix(partie, dossier.mode)}
                   </span>
-                  {partie.rempli_par === "avocat" && <BadgeDsfr type="neutre">Via avocat</BadgeDsfr>}
-                </li>
-              )
-            })}
-          </ul>
-        </CardContent>
-      </Card>
-    </Link>
+                </span>
+                {partie.rempli_par === "avocat" && <BadgeDsfr type="neutre">Via avocat</BadgeDsfr>}
+              </li>
+            )
+          })}
+        </ul>
+      </CardContent>
+    </Card>
   )
 }

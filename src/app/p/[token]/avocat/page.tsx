@@ -8,7 +8,7 @@ import { vocabulaire } from "../vocabulaire"
 import { ParcoursAvocat } from "./parcours-avocat"
 
 export const metadata: Metadata = {
-  title: "Espace avocat — Médiation",
+  title: "Répondre pour votre client – Espace avocat",
 }
 
 // Page publique de l'avocat d'une partie, même QR code que la partie (personne 6).

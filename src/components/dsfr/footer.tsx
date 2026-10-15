@@ -19,22 +19,33 @@ export function PiedDePage() {
             Saint-Denis × Epitech La Réunion) par l&apos;équipe MEIDI. Ce site n&apos;est
             pas un service officiel.
           </p>
-          <p>Accessibilité : non conforme (prototype non audité).</p>
+          <p>
+            Accessibilité :{" "}
+            <Link href="/accessibilite" className="underline">
+              partiellement conforme
+            </Link>{" "}
+            (prototype non audité).
+          </p>
           <nav aria-label="Pied de page">
             <ul className="flex flex-wrap gap-x-4 gap-y-1">
               <li>
-                <Link href="/" className="underline">
+                <Link href="/" className="inline-flex min-h-11 items-center underline sm:min-h-0">
                   Accueil
                 </Link>
               </li>
               <li>
-                <Link href="/juridiction" className="underline">
+                <Link href="/juridiction" className="inline-flex min-h-11 items-center underline sm:min-h-0">
                   Espace juridiction
                 </Link>
               </li>
               <li>
-                <Link href="/mediateur" className="underline">
+                <Link href="/mediateur" className="inline-flex min-h-11 items-center underline sm:min-h-0">
                   Espace médiateur
+                </Link>
+              </li>
+              <li>
+                <Link href="/accessibilite" className="inline-flex min-h-11 items-center underline sm:min-h-0">
+                  Accessibilité
                 </Link>
               </li>
             </ul>

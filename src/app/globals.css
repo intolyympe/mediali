@@ -87,6 +87,8 @@
   --border: #dddddd;
   /* Bordures des champs et cases à cocher : #DDDDDD n'atteint pas 3:1 */
   --input: #666666;
+  /* Texte d'exemple des champs : plus clair que le texte saisi, 5,7:1 sur blanc */
+  --placeholder: #666666;
   /* Contour de focus clavier (DSFR) */
   --focus: #0a76f6;
   --ring: #0a76f6;
@@ -162,6 +164,16 @@
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/*
+ * Placeholders (« Ex. : 0692 12 34 56 ») : nettement plus clairs que le texte
+ * saisi (#161616) pour ne pas être pris pour une valeur, contraste 5,7:1.
+ * Hors @layer pour passer devant les classes placeholder: des composants.
+ */
+::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
 }
 
 /* Lien d'évitement « Aller au contenu » : visible seulement au clavier */

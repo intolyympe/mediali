@@ -6,8 +6,9 @@ import { ACCUEIL_PAR_ROLE, lireRole, type Role } from "@/lib/roles"
 import type { Database } from "./database.types"
 
 // Pages accessibles sans être connecté : l'accueil, la connexion, les
-// pages des QR codes et la remise à zéro de la démo (protégée par CRON_SECRET)
-const CHEMINS_PUBLICS = ["/connexion", "/p/", "/api/reset-demo"]
+// pages des QR codes, la déclaration d'accessibilité et la remise à zéro de
+// la démo (protégée par CRON_SECRET)
+const CHEMINS_PUBLICS = ["/connexion", "/p/", "/accessibilite", "/api/reset-demo"]
 
 // Espaces réservés à un rôle (le rôle technique "greffe" → espace juridiction)
 const ESPACES: Record<Role, string> = {

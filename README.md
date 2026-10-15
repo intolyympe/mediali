@@ -119,6 +119,7 @@ ses disponibilités) :
 | `npm run build`     | Build de production                                |
 | `npm run lint`      | ESLint                                             |
 | `npm run typecheck` | Vérification TypeScript                            |
+| `npm run test:a11y` | Tests d'accessibilité (axe-core) en mode démo      |
 | `npm run db:start`  | Démarre Supabase en local                          |
 | `npm run db:stop`   | Arrête Supabase                                    |
 | `npm run db:reset`  | Rejoue la migration et le seed                     |

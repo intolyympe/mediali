@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server"
 import { TableauSuivi } from "./tableau-suivi"
 
 export const metadata: Metadata = {
-  title: "Tableau de suivi — Espace juridiction",
+  title: "Tableau de suivi – Espace juridiction",
 }
 
 // Requête du tableau de suivi (une seule, tous les dossiers)

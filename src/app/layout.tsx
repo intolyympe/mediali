@@ -25,7 +25,11 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Médiali — Médiation et conciliation judiciaires",
+  // Chaque page donne son titre : « Tableau de suivi – Espace juridiction – Médiali »
+  title: {
+    default: "Médiali – Médiation et conciliation judiciaires",
+    template: "%s – Médiali",
+  },
   description:
     "Transmission des coordonnées et disponibilités des parties au médiateur ou au conciliateur désigné — Prototype · Hackathon Justice Tech 2026.",
 }

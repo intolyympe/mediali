@@ -11,7 +11,7 @@ import { filtreIntervenant, SELECT_DOSSIERS } from "./donnees"
 import { TableauDeBord } from "./tableau-de-bord"
 
 export const metadata: Metadata = {
-  title: "Espace médiateur — Médiali",
+  title: "Mes dossiers – Espace médiateur",
 }
 
 export default function EspaceMediateur() {

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import type { Enums } from "@/lib/supabase/database.types"
 import { cn } from "@/lib/utils"
 
+import { focaliser, premierEnErreur, useFocusTitre } from "./accessibilite"
 import { envoyerRefus, envoyerReponse, verifierNom, type ResultatEnvoi } from "./actions"
 import type { JourCreneaux } from "./dates"
 import {
@@ -101,6 +102,7 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
   const [erreursCoordonnees, setErreursCoordonnees] = useState<ErreursCoordonnees>({})
   const [enCours, startTransition] = useTransition()
   const [resultat, setResultat] = useState<{ rdv: string | null } | null>(null)
+  const titreRef = useFocusTitre(resultat ? "fin" : `${etape}-${confirmationRefus}`)
 
   function allerA(nouvelleEtape: number) {
     setErreur(null)
@@ -109,24 +111,35 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
   }
 
   function terminer(reponse: ResultatEnvoi) {
-    if (reponse.erreur !== null) return setErreur(reponse.erreur)
+    if (reponse.erreur !== null) {
+      setErreur(reponse.erreur)
+      // Erreur du serveur à l'envoi : focus sur le message pour qu'il soit lu
+      return focaliser("#erreur-etape")
+    }
     setResultat({ rdv: reponse.rdv })
     window.scrollTo(0, 0)
   }
 
   function validerNom(event: React.FormEvent) {
     event.preventDefault()
-    if (!nom.trim()) return setErreur("Écrivez votre nom de famille.")
+    if (!nom.trim()) {
+      setErreur("Écrivez votre nom de famille.")
+      return focaliser("#nom")
+    }
     startTransition(async () => {
       const reponse = await verifierNom(token, nom)
-      if (reponse.erreur) setErreur(reponse.erreur)
-      else allerA(2)
+      if (!reponse.erreur) return allerA(2)
+      setErreur(reponse.erreur)
+      focaliser("#nom")
     })
   }
 
   function validerChoix(event: React.FormEvent) {
     event.preventDefault()
-    if (!choix) return setErreur("Choisissez une réponse pour continuer.")
+    if (!choix) {
+      setErreur("Choisissez une réponse pour continuer.")
+      return focaliser("#choix-information")
+    }
     if (choix === "refuse") {
       setErreur(null)
       setConfirmationRefus(true)
@@ -152,18 +165,27 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
     setErreursCoordonnees(erreurs)
     // Une erreur sur un champ caché : on rouvre « autre moyen de contact »
     if (erreurs.telephone_2 || erreurs.email_2 || erreurs.adresse) setAutreContact(true)
-    if (Object.keys(erreurs).length === 0) allerA(4)
+    if (Object.keys(erreurs).length === 0) return allerA(4)
+    // « Au moins un téléphone ou un e-mail » : focus sur le téléphone
+    const champ = premierEnErreur(["telephone", "email", "telephone_2", "email_2", "adresse"], erreurs)
+    focaliser(`#${champ ?? "telephone"}`)
   }
 
   function validerConsentement(event: React.FormEvent) {
     event.preventDefault()
-    if (!consentement) return setErreur("Cochez la case pour continuer.")
+    if (!consentement) {
+      setErreur("Cochez la case pour continuer.")
+      return focaliser('#zone-consentement [role="checkbox"]')
+    }
     allerA(5)
   }
 
   function validerPreferences(event: React.FormEvent) {
     event.preventDefault()
-    if (!prefFormat || !prefLieu) return setErreur("Répondez aux deux questions pour continuer.")
+    if (!prefFormat || !prefLieu) {
+      setErreur("Répondez aux deux questions pour continuer.")
+      return focaliser(!prefFormat ? "#pref_format-ensemble" : "#pref_lieu-presentiel")
+    }
     allerA(6)
   }
 
@@ -198,7 +220,9 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
         <section className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-3 text-center">
             <CircleCheckIcon className="size-16 text-succes" aria-hidden />
-            <h1 className="text-2xl font-bold">Votre réponse est enregistrée</h1>
+            <h1 ref={titreRef} tabIndex={-1} className="text-2xl font-bold">
+              Votre réponse est enregistrée
+            </h1>
             <p className="text-lg">
               Vous avez refusé {mots.laProcedure}. Le juge en sera informé.
             </p>
@@ -228,7 +252,9 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
       <section className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <CircleCheckIcon className="size-16 text-succes" aria-hidden />
-          <h1 className="text-2xl font-bold">Merci, c&apos;est envoyé&nbsp;!</h1>
+          <h1 ref={titreRef} tabIndex={-1} className="text-2xl font-bold">
+            Merci, c&apos;est envoyé&nbsp;!
+          </h1>
           {resultat.rdv ? (
             <>
               <p className="text-lg">Votre premier rendez-vous est fixé&nbsp;:</p>
@@ -281,18 +307,18 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
   // ---------------------------------------------------------------------------
   return (
     <section className="flex flex-col gap-6">
-      <BarreProgression etape={etape} />
+      <BarreProgression etape={etape} titreRef={titreRef} />
 
       {etape === 1 && (
         <form onSubmit={validerNom} noValidate className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Dossier n° {numeroRg}</h1>
+            <h2 className="text-2xl font-bold">Dossier n° {numeroRg}</h2>
             <p className="text-lg">
               Le juge vous propose une {mots.procedure}. Pour commencer, écrivez votre nom de
               famille.
             </p>
           </div>
-          <Champ id="nom" label="Votre nom de famille">
+          <Champ id="nom" label="Votre nom de famille (obligatoire)" erreur={erreur ?? undefined}>
             <Input
               id="nom"
               value={nom}
@@ -300,10 +326,10 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
               autoComplete="family-name"
               autoCapitalize="characters"
               aria-invalid={Boolean(erreur)}
+              aria-describedby={erreur ? "nom-erreur" : undefined}
               className="h-14 text-lg md:text-lg"
             />
           </Champ>
-          <MessageErreur erreur={erreur} />
           <GrandBouton disabled={enCours}>{enCours ? "Vérification…" : "Continuer"}</GrandBouton>
           <Link
             href={`/p/${token}/avocat`}
@@ -316,9 +342,11 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
 
       {etape === 2 && !confirmationRefus && (
         <form onSubmit={validerChoix} noValidate className="flex flex-col gap-6">
-          <fieldset className="flex flex-col gap-4">
+          <fieldset className="flex flex-col gap-4" aria-describedby={erreur ? "erreur-etape" : undefined}>
             <legend className="mb-4 flex flex-col gap-2">
-              <span className="text-2xl font-bold">Que souhaitez-vous&nbsp;?</span>
+              <span className="text-2xl font-bold">
+                Que souhaitez-vous&nbsp;? <span className="text-lg font-normal">(obligatoire)</span>
+              </span>
               <span className="text-lg">
                 {majuscule(mots.laProcedure)} est une démarche amiable : {mots.leTiers}{" "}
                 aide les parties à trouver une solution ensemble.
@@ -327,6 +355,7 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
             {(Object.keys(choixPossibles) as Choix[]).map((valeur) => (
               <GrandChoix
                 key={valeur}
+                id={`choix-${valeur}`}
                 name="choix"
                 checked={choix === valeur}
                 onChange={() => {
@@ -338,7 +367,7 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
               />
             ))}
           </fieldset>
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <GrandBouton>Continuer</GrandBouton>
           <BoutonRetour onClick={() => allerA(1)} />
         </form>
@@ -347,13 +376,13 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
       {etape === 2 && confirmationRefus && (
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Confirmez-vous votre refus&nbsp;?</h1>
+            <h2 className="text-2xl font-bold">Confirmez-vous votre refus&nbsp;?</h2>
             <p className="text-lg">
               Vous refusez {mots.laProcedure} proposée par le juge dans le dossier n°{" "}
               {numeroRg}. Le juge sera informé de votre choix.
             </p>
           </div>
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <Button size="lg" className="h-14 w-full text-lg" onClick={confirmerRefus} disabled={enCours}>
             {enCours ? "Enregistrement…" : `Oui, je refuse ${mots.laProcedure}`}
           </Button>
@@ -375,19 +404,21 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
       {etape === 3 && (
         <form onSubmit={validerCoordonnees} noValidate className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Comment vous joindre&nbsp;?</h1>
+            <h2 className="text-2xl font-bold">Comment vous joindre&nbsp;?</h2>
             <p className="text-lg">
               Indiquez au moins un numéro de téléphone ou une adresse e-mail. Seul{" "}
               {mots.leTiers} les recevra.
             </p>
           </div>
-          <ChampTexte id="telephone" label="Votre téléphone" type="tel" placeholder="0692 12 34 56"
+          <ChampTexte id="telephone" label="Votre téléphone" type="tel" placeholder="Ex. : 0692 12 34 56"
             autoComplete="tel" valeur={coordonnees.telephone} erreur={erreursCoordonnees.telephone}
+            decritPar={erreursCoordonnees.general ? "erreur-coordonnees" : undefined}
             onChange={(v) => changerCoordonnee("telephone", v)} />
-          <ChampTexte id="email" label="Votre e-mail" type="email" placeholder="nom@exemple.fr"
+          <ChampTexte id="email" label="Votre e-mail" type="email" placeholder="Ex. : nom@exemple.fr"
             autoComplete="email" valeur={coordonnees.email} erreur={erreursCoordonnees.email}
+            decritPar={erreursCoordonnees.general ? "erreur-coordonnees" : undefined}
             onChange={(v) => changerCoordonnee("email", v)} />
-          <MessageErreur erreur={erreursCoordonnees.general} />
+          <MessageErreur id="erreur-coordonnees" erreur={erreursCoordonnees.general} />
 
           <Button
             type="button"
@@ -422,7 +453,7 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
       {etape === 4 && (
         <form onSubmit={validerConsentement} noValidate className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Votre accord</h1>
+            <h2 className="text-2xl font-bold">Votre accord</h2>
             <p className="text-lg">
               Vos coordonnées seront transmises <strong>uniquement</strong> {mots.auTiers}{" "}
               désigné par le juge. Il s&apos;en servira seulement pour organiser{" "}
@@ -430,6 +461,7 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
             </p>
           </div>
           <label
+            id="zone-consentement"
             className={cn(
               "flex cursor-pointer items-start gap-4 rounded-sm border-2 p-4 text-lg",
               consentement ? "border-primary bg-secondary" : "border-input",
@@ -443,11 +475,12 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
                 setErreur(null)
               }}
               aria-invalid={Boolean(erreur)}
+              aria-describedby={erreur ? "erreur-etape" : undefined}
               className="mt-1 size-6 [&_svg]:size-5"
             />
-            J&apos;accepte que mes coordonnées soient transmises {mots.auTiers}.
+            J&apos;accepte que mes coordonnées soient transmises {mots.auTiers} (obligatoire).
           </label>
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <GrandBouton>Continuer</GrandBouton>
           <BoutonRetour onClick={() => allerA(3)} />
         </form>
@@ -456,17 +489,17 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
       {etape === 5 && (
         <form onSubmit={validerPreferences} noValidate className="flex flex-col gap-8">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Votre premier rendez-vous</h1>
+            <h2 className="text-2xl font-bold">Votre premier rendez-vous</h2>
             <p className="text-lg">
               Dites-nous ce qui vous convient. {majuscule(mots.leTiers)} en tiendra compte.
             </p>
           </div>
-          <fieldset className="flex flex-col gap-3">
+          <fieldset className="flex flex-col gap-3" aria-describedby={erreur && !prefFormat ? "erreur-etape" : undefined}>
             <legend className="mb-3 text-lg font-bold">
-              Souhaitez-vous rencontrer {mots.leTiers}&nbsp;:
+              Souhaitez-vous rencontrer {mots.leTiers}&nbsp;: <span className="font-normal">(obligatoire)</span>
             </legend>
             {(Object.keys(TEXTES_FORMAT) as Enums<"preference_format">[]).map((valeur) => (
-              <GrandChoix key={valeur} name="pref_format" titre={TEXTES_FORMAT[valeur]}
+              <GrandChoix key={valeur} id={`pref_format-${valeur}`} name="pref_format" titre={TEXTES_FORMAT[valeur]}
                 checked={prefFormat === valeur}
                 onChange={() => {
                   setPrefFormat(valeur)
@@ -474,10 +507,12 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
                 }} />
             ))}
           </fieldset>
-          <fieldset className="flex flex-col gap-3">
-            <legend className="mb-3 text-lg font-bold">Comment&nbsp;?</legend>
+          <fieldset className="flex flex-col gap-3" aria-describedby={erreur && !prefLieu ? "erreur-etape" : undefined}>
+            <legend className="mb-3 text-lg font-bold">
+              Comment&nbsp;? <span className="font-normal">(obligatoire)</span>
+            </legend>
             {(Object.keys(TEXTES_LIEU) as Enums<"preference_lieu">[]).map((valeur) => (
-              <GrandChoix key={valeur} name="pref_lieu" titre={TEXTES_LIEU[valeur]}
+              <GrandChoix key={valeur} id={`pref_lieu-${valeur}`} name="pref_lieu" titre={TEXTES_LIEU[valeur]}
                 checked={prefLieu === valeur}
                 onChange={() => {
                   setPrefLieu(valeur)
@@ -485,7 +520,7 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
                 }} />
             ))}
           </fieldset>
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <GrandBouton>Continuer</GrandBouton>
           <BoutonRetour onClick={() => allerA(4)} />
         </form>
@@ -494,7 +529,7 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
       {etape === 6 && (
         <form onSubmit={envoyer} noValidate className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Quand êtes-vous disponible&nbsp;?</h1>
+            <h2 className="text-2xl font-bold">Quand êtes-vous disponible&nbsp;?</h2>
             <p className="text-lg">
               {jours.length > 0
                 ? "Cochez toutes les dates qui vous conviennent pour le premier rendez-vous."
@@ -534,7 +569,7 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
             </p>
           )}
 
-          <MessageErreur erreur={erreur} />
+          <MessageErreur id="erreur-etape" erreur={erreur} />
           <GrandBouton disabled={enCours}>{enCours ? "Envoi en cours…" : "Envoyer mes réponses"}</GrandBouton>
           <BoutonRetour onClick={() => allerA(5)} disabled={enCours} />
         </form>
@@ -543,19 +578,23 @@ export function ParcoursPartie({ token, numeroRg, mode, jours }: Props) {
   )
 }
 
-function BarreProgression({ etape }: { etape: number }) {
+/**
+ * Titre de la page (h1) « Étape 2 sur 6 : Votre choix », qui reçoit le focus à
+ * chaque changement d'étape, puis la barre de progression.
+ */
+function BarreProgression({ etape, titreRef }: { etape: number; titreRef: React.Ref<HTMLHeadingElement> }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-base font-medium">
+      <h1 ref={titreRef} tabIndex={-1} className="text-base font-medium">
         Étape {etape} sur {TITRES_ETAPES.length} : {TITRES_ETAPES[etape - 1]}
-      </p>
+      </h1>
       <div
         role="progressbar"
         aria-valuemin={1}
         aria-valuemax={TITRES_ETAPES.length}
         aria-valuenow={etape}
         aria-valuetext={`Étape ${etape} sur ${TITRES_ETAPES.length} : ${TITRES_ETAPES[etape - 1]}`}
-        aria-label="Progression"
+        aria-label="Progression du formulaire"
         className="flex gap-1.5"
       >
         {TITRES_ETAPES.map((titre, index) => (
@@ -571,12 +610,14 @@ function BarreProgression({ etape }: { etape: number }) {
 
 /** Grande option à choix unique (bouton radio), facile à toucher sur téléphone. */
 function GrandChoix({
+  id,
   name,
   titre,
   aide,
   checked,
   onChange,
 }: {
+  id: string
   name: string
   titre: string
   aide?: string
@@ -592,6 +633,7 @@ function GrandChoix({
     >
       <input
         type="radio"
+        id={id}
         name={name}
         checked={checked}
         onChange={onChange}
@@ -622,7 +664,7 @@ function Champ({
         {label}
       </Label>
       {children}
-      <MessageErreur erreur={erreur} />
+      <MessageErreur id={`${id}-erreur`} erreur={erreur} />
     </div>
   )
 }
@@ -636,12 +678,15 @@ function ChampTexte({
   type = "text",
   placeholder,
   autoComplete,
+  decritPar,
 }: {
   id: string
   label: string
   valeur: string
   onChange: (valeur: string) => void
   erreur?: string
+  /** id d'un message d'erreur commun à plusieurs champs */
+  decritPar?: string
   type?: "text" | "tel" | "email"
   placeholder?: string
   autoComplete?: string
@@ -656,17 +701,19 @@ function ChampTexte({
         placeholder={placeholder}
         value={valeur}
         onChange={(event) => onChange(event.target.value)}
-        aria-invalid={Boolean(erreur)}
+        aria-invalid={Boolean(erreur || decritPar)}
+        aria-describedby={[erreur && `${id}-erreur`, decritPar].filter(Boolean).join(" ") || undefined}
         className="h-14 text-lg md:text-lg"
       />
     </Champ>
   )
 }
 
-function MessageErreur({ erreur }: { erreur?: string | null }) {
+/** Message d'erreur annoncé (role="alert"), relié au champ par son id. */
+function MessageErreur({ id, erreur }: { id: string; erreur?: string | null }) {
   if (!erreur) return null
   return (
-    <p role="alert" className="text-base font-medium text-destructive">
+    <p id={id} role="alert" tabIndex={-1} className="text-base font-medium text-destructive">
       {erreur}
     </p>
   )
