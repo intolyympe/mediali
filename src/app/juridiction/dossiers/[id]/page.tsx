@@ -104,7 +104,7 @@ async function DetailDossier({ params }: Pick<PageProps<"/juridiction/dossiers/[
             >
               <CardHeader>
                 <p className="text-sm font-bold text-primary">
-                  Médiali · Cour d&apos;appel de Saint-Denis de La Réunion
+                  Médiali · Démonstration
                 </p>
                 <CardTitle>À joindre à la notification</CardTitle>
                 <p className="text-sm text-muted-foreground">

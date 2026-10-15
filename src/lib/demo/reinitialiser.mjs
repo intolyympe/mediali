@@ -50,7 +50,7 @@ function dateHeureFr(iso) {
 const FONTAINE = "11111111-0000-0000-0000-000000000001"
 const LAURET = "11111111-0000-0000-0000-000000000002"
 const HOARAU_CONCILIATRICE = "11111111-0000-0000-0000-000000000003"
-const CA = "Cour d'appel de Saint-Denis"
+const CA = "Cour d'appel de démonstration"
 const D = (n) => `22222222-0000-0000-0000-00000000000${n}`
 const CRENEAU_PASSE_1 = "33333333-0000-0000-0000-000000000001"
 const CRENEAU_PASSE_2 = "33333333-0000-0000-0000-000000000002"
@@ -97,7 +97,7 @@ const dossiers = () => [
   dossier(D(3), "26/00167", 15, "mediation", FONTAINE, null, true),
   // 4. Conciliation
   dossier(D(4), "26/00180", 6, "conciliation", HOARAU_CONCILIATRICE, null, false, {
-    juridiction: "Tribunal judiciaire de Saint-Denis",
+    juridiction: "Tribunal judiciaire de démonstration",
   }),
   // 5. Trois parties, co-médiation, un refus
   dossier(D(5), "26/00192", 10, "mediation", FONTAINE, LAURET, true),

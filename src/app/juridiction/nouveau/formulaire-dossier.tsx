@@ -41,7 +41,7 @@ export function FormulaireDossier({ intervenants }: { intervenants: Intervenant[
   const [dossier, setDossier] = useState({
     mode: "mediation" as Enums<"mode_amiable">,
     numero_rg: "",
-    juridiction: "Cour d'appel de Saint-Denis",
+    juridiction: "Cour d'appel de démonstration",
     date_ordonnance: "",
     mediateur_id: "",
     co_mediateur_id: "",

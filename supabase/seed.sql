@@ -69,27 +69,27 @@ insert into public.dossiers (
   provision_consignee, rdv_creneau_id, issue, compte_rendu, cloture_le, created_at
 ) values
   -- 1. Médiation, personne n'a répondu → en attente
-  ('22222222-0000-0000-0000-000000000001', '26/00123', 'Cour d''appel de Saint-Denis', current_date - 3, 'mediation',
+  ('22222222-0000-0000-0000-000000000001', '26/00123', 'Cour d''appel de démonstration', current_date - 3, 'mediation',
    '11111111-0000-0000-0000-000000000001', null, false, null, 'en_cours', null, null, now() - interval '3 days'),
   -- 2. Médiation, une partie sur deux a répondu → partiellement joignable
-  ('22222222-0000-0000-0000-000000000002', '26/00145', 'Cour d''appel de Saint-Denis', current_date - 8, 'mediation',
+  ('22222222-0000-0000-0000-000000000002', '26/00145', 'Cour d''appel de démonstration', current_date - 8, 'mediation',
    '11111111-0000-0000-0000-000000000001', null, true, null, 'en_cours', null, null, now() - interval '8 days'),
   -- 3. Médiation, créneau commun → RDV fixé automatiquement
-  ('22222222-0000-0000-0000-000000000003', '26/00167', 'Cour d''appel de Saint-Denis', current_date - 15, 'mediation',
+  ('22222222-0000-0000-0000-000000000003', '26/00167', 'Cour d''appel de démonstration', current_date - 15, 'mediation',
    '11111111-0000-0000-0000-000000000001', null, true, null, 'en_cours', null, null, now() - interval '15 days'),
   -- 4. Conciliation
-  ('22222222-0000-0000-0000-000000000004', '26/00180', 'Tribunal judiciaire de Saint-Denis', current_date - 6, 'conciliation',
+  ('22222222-0000-0000-0000-000000000004', '26/00180', 'Tribunal judiciaire de démonstration', current_date - 6, 'conciliation',
    '11111111-0000-0000-0000-000000000003', null, false, null, 'en_cours', null, null, now() - interval '6 days'),
   -- 5. Trois parties, co-médiation, un refus
-  ('22222222-0000-0000-0000-000000000005', '26/00192', 'Cour d''appel de Saint-Denis', current_date - 10, 'mediation',
+  ('22222222-0000-0000-0000-000000000005', '26/00192', 'Cour d''appel de démonstration', current_date - 10, 'mediation',
    '11111111-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000002', true, null, 'en_cours', null, null, now() - interval '10 days'),
   -- 6. Clos avec accord total
-  ('22222222-0000-0000-0000-000000000006', '26/00098', 'Cour d''appel de Saint-Denis', current_date - 45, 'mediation',
+  ('22222222-0000-0000-0000-000000000006', '26/00098', 'Cour d''appel de démonstration', current_date - 45, 'mediation',
    '11111111-0000-0000-0000-000000000001', null, true, '33333333-0000-0000-0000-000000000001', 'accord_total',
    'Les parties ont trouvé un accord sur l''échéancier de remboursement. Protocole d''accord signé, transmis au juge pour homologation.',
    now() - interval '2 days', now() - interval '45 days'),
   -- 7. Carence : le défendeur ne s'est pas présenté
-  ('22222222-0000-0000-0000-000000000007', '26/00105', 'Cour d''appel de Saint-Denis', current_date - 40, 'mediation',
+  ('22222222-0000-0000-0000-000000000007', '26/00105', 'Cour d''appel de démonstration', current_date - 40, 'mediation',
    '11111111-0000-0000-0000-000000000001', null, true, '33333333-0000-0000-0000-000000000002', 'carence',
    'Le défendeur, régulièrement convoqué, ne s''est pas présenté au premier rendez-vous. Procès-verbal de carence dressé.',
    now() - interval '3 days', now() - interval '40 days');

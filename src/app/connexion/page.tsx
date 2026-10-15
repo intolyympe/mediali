@@ -23,7 +23,7 @@ export default function PageConnexion() {
         <CardHeader>
           <CardTitle className="text-lg">Espace juridiction et médiateur</CardTitle>
           <CardDescription>
-            Cour d&apos;appel de Saint-Denis — connectez-vous pour suivre vos
+            Prototype · Hackathon Justice Tech 2026 — connectez-vous pour suivre vos
             dossiers de médiation.
           </CardDescription>
         </CardHeader>

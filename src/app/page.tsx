@@ -9,7 +9,7 @@ export default function Accueil() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-8 px-4 py-12">
       <p className="text-sm font-medium text-muted-foreground">
-        Cour d&apos;appel de Saint-Denis de La Réunion · Hackathon Justice Tech
+        Prototype · Hackathon Justice Tech 2026
       </p>
 
       <div className="flex flex-col gap-4">

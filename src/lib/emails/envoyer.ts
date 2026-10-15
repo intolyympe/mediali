@@ -15,7 +15,7 @@ export type Email = {
 // Adresse d'expédition : doit appartenir à un domaine vérifié sur Resend.
 // onboarding@resend.dev ne peut écrire qu'à l'adresse du compte Resend.
 const EXPEDITEUR =
-  process.env.EMAIL_EXPEDITEUR || "Médiali – Cour d'appel de Saint-Denis <onboarding@resend.dev>"
+  process.env.EMAIL_EXPEDITEUR || "Médiali (démonstration) <onboarding@resend.dev>"
 
 /**
  * Vocabulaire des e-mails selon dossiers.mode :
@@ -29,7 +29,7 @@ export function vocabulaire(mode: Enums<"mode_amiable">) {
 
 /** Ajoute l'en-tête et la mention de bas de page communs à tous les e-mails. */
 export function miseEnForme(corps: string, mode: Enums<"mode_amiable">) {
-  const enTete = `${vocabulaire(mode).Procedure} – Cour d'appel de Saint-Denis`
+  const enTete = `${vocabulaire(mode).Procedure} – Médiali (démonstration)`
   return `${enTete}\n\n${corps}\n\n--\nMessage automatique, merci de ne pas y répondre.`
 }
 

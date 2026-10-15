@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
-import { Geist_Mono } from "next/font/google"
-import localFont from "next/font/local"
+import { Geist_Mono, Public_Sans } from "next/font/google"
+import { Suspense } from "react"
 
+import { BoutonAide } from "@/components/aide/bouton-aide"
 import { BandeauDemo } from "@/components/demo/bandeau-demo"
 import { PiedDePage } from "@/components/dsfr/footer"
 import { EnTete } from "@/components/dsfr/header"
@@ -9,18 +10,13 @@ import { Toaster } from "@/components/ui/sonner"
 
 import "./globals.css"
 
-// Police Marianne, chargée depuis les fichiers du paquet officiel @gouvfr/dsfr
-// (sans le CSS du DSFR, pour ne pas casser les composants shadcn).
-const marianne = localFont({
+// Public Sans : police libre proche de Marianne (pas de police de l'État, le
+// site est un prototype et non un service officiel).
+const publicSans = Public_Sans({
   variable: "--font-sans",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
   display: "swap",
-  src: [
-    { path: "../../node_modules/@gouvfr/dsfr/dist/fonts/Marianne-Light.woff2", weight: "300", style: "normal" },
-    { path: "../../node_modules/@gouvfr/dsfr/dist/fonts/Marianne-Regular.woff2", weight: "400", style: "normal" },
-    { path: "../../node_modules/@gouvfr/dsfr/dist/fonts/Marianne-Regular_Italic.woff2", weight: "400", style: "italic" },
-    { path: "../../node_modules/@gouvfr/dsfr/dist/fonts/Marianne-Medium.woff2", weight: "500", style: "normal" },
-    { path: "../../node_modules/@gouvfr/dsfr/dist/fonts/Marianne-Bold.woff2", weight: "700", style: "normal" },
-  ],
 })
 
 const geistMono = Geist_Mono({
@@ -31,14 +27,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Médiali — Médiation et conciliation judiciaires",
   description:
-    "Transmission des coordonnées et disponibilités des parties au médiateur ou au conciliateur désigné — Cour d'appel de Saint-Denis de La Réunion.",
+    "Transmission des coordonnées et disponibilités des parties au médiateur ou au conciliateur désigné — Prototype · Hackathon Justice Tech 2026.",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="fr"
-      className={`${marianne.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${publicSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <a href="#contenu" className="lien-evitement">
@@ -50,6 +46,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </div>
         <PiedDePage />
+        {/* usePathname suspend sur les pages à paramètre dynamique (/p/[token]…) */}
+        <Suspense fallback={null}>
+          <BoutonAide />
+        </Suspense>
         <Toaster />
       </body>
     </html>

@@ -86,41 +86,54 @@ Le modèle de données actuel est décrit dans **Modèle V2** ci-dessous.
   (`rm -rf .next`) et relancer.
 - Avant de coder avec une API Next.js, consulter `node_modules/next/dist/docs/`.
 
-## Charte DSFR
+## Charte graphique
 
-L'apparence suit le **Système de Design de l'État** (DSFR) : service
-« **Médiali** — Médiation et conciliation judiciaires », Cour d'appel de
-Saint-Denis de La Réunion.
+Démo publique de portfolio : service « **Médiali** — Médiation et
+conciliation judiciaires ». Les couleurs et les composants s'inspirent du
+Système de Design de l'État (DSFR), mais le site **ne doit jamais pouvoir être
+confondu avec un service officiel de l'État**.
 
-### Mise en place (ne pas casser)
-- Paquet officiel `@gouvfr/dsfr` : on n'utilise **que la police Marianne**
-  (`next/font/local` dans `src/app/layout.tsx`, fichiers de
-  `node_modules/@gouvfr/dsfr/dist/fonts/`). **Ne pas importer le CSS du DSFR**
-  ni ses classes `fr-*` : il casserait les composants shadcn.
-- Son installation exige l'acceptation de ses modalités d'utilisation :
-  `.dsfr.yml` (`accept-license: 1.0.1`) **doit rester commité**, sinon
-  `npm install` échoue, y compris sur Vercel. Si une mise à jour du paquet
-  change de version de CGU, l'installation échoue : un humain relit et accepte
-  la nouvelle version, Claude ne le fait jamais seul.
-- Le DSFR est réservé aux services de l'État : la mention « Prototype –
-  Hackathon Justice Tech » de l'en-tête et du pied de page doit rester
-  (pas de confusion avec un service officiel). Bloc-marque en texte seul,
-  jamais d'image du logo officiel.
+### Identité (ne pas casser)
+- **Aucun élément de l'État** : pas de bloc-marque « République Française »,
+  pas de devise, pas de Marianne (ni logo ni police), pas de paquet
+  `@gouvfr/dsfr` ni de classes `fr-*`. Ne pas écrire « Cour d'appel de
+  Saint-Denis de La Réunion » dans l'en-tête.
+- Logo texte `<LogoMediali />` (`src/components/dsfr/logo.tsx`) : « Médi »
+  puis « Ali » en bleu `#000091`, sous-titre « Médiation et conciliation
+  judiciaires ».
+- Police **Public Sans** (police libre proche de Marianne), chargée avec
+  `next/font/google` dans `src/app/layout.tsx` (variable `--font-sans`).
+- La mention « Prototype – Hackathon Justice Tech » de l'en-tête et la
+  phrase du pied de page (« Prototype réalisé lors du hackathon Justice Tech
+  2026 (Cour d'appel de Saint-Denis × Epitech La Réunion) par l'équipe MEIDI.
+  Ce site n'est pas un service officiel. ») doivent rester.
 - `src/app/layout.tsx` affiche pour toutes les pages le lien d'évitement
-  « Aller au contenu », `<EnTete />` (`src/components/dsfr/header.tsx`) et
-  `<PiedDePage />` (`src/components/dsfr/footer.tsx`). Les pages ne
-  recréent pas d'en-tête de site : elles commencent par leur `<main>`.
+  « Aller au contenu », `<EnTete />` (`src/components/dsfr/header.tsx`),
+  `<PiedDePage />` (`src/components/dsfr/footer.tsx`) et le bouton d'aide.
+  Les pages ne recréent pas d'en-tête de site : elles commencent par leur
+  `<main>`.
+- **Bouton d'aide** « ? » fixé en bas à droite (`<BoutonAide />`,
+  `src/components/aide/bouton-aide.tsx`, dans un `<Suspense>` car
+  `usePathname` suspend sur `/p/[token]`). Il ouvre une fenêtre qui explique la
+  page en cours. **Tout le texte est dans `src/lib/aide.ts`** (un contenu par
+  espace : accueil, juridiction, partie, avocat, médiateur ; `pageAide(chemin)`
+  choisit lequel). À la première visite, l'aide de l'accueil s'ouvre seule
+  (clé `mediali-aide-vue` du localStorage). Le pied de page garde de la place
+  en bas pour ce bouton.
 - `button.tsx`, `input.tsx` et `native-select.tsx` de `src/components/ui/` ont
   été retouchés pour la charte (variantes et hauteur 40px). Ne jamais lancer
   `npx shadcn@latest add … --overwrite` sur ces fichiers : cela effacerait la
-  charte. Les nouveaux composants shadcn héritent des couleurs automatiquement.
+  charte. Quand `npx shadcn@latest add` demande « button.tsx already exists.
+  Would you like to overwrite? », répondre **non** (`printf 'n\n' | npx
+  shadcn@latest add …`). Les nouveaux composants shadcn héritent des couleurs
+  automatiquement.
 
 ### Couleurs (variables de `src/app/globals.css`)
 | Rôle | Valeur | Classes Tailwind |
 | ---- | ------ | ---------------- |
-| Bleu France (primaire, liens, actifs) | `#000091` | `bg-primary`, `text-primary`, `border-primary` |
+| Bleu (primaire, liens, actifs) | `#000091` | `bg-primary`, `text-primary`, `border-primary` |
 | Survol du primaire | `#1212FF` | `hover:bg-primary-hover` |
-| Rouge Marianne (**erreurs uniquement**) | `#E1000F` | `text-destructive`, `bg-destructive` |
+| Rouge (**erreurs uniquement**) | `#E1000F` | `text-destructive`, `bg-destructive` |
 | Texte | `#161616` | `text-foreground` |
 | Texte secondaire | `#3A3A3A` | `text-muted-foreground` |
 | Fond / fond alterné | `#FFFFFF` / `#F6F6F6` | `bg-background` / `bg-muted` |
@@ -157,7 +170,7 @@ Coins presque droits : toutes les classes `rounded-*` valent 4px au maximum
 ### Règles (RGAA)
 - Pas de couleurs Tailwind codées en dur (`gray-200`, `orange-100`,
   `green-600`, `blue-500`…) : uniquement les variables ci-dessus.
-- Rouge Marianne réservé aux erreurs. La couleur ne porte jamais seule une
+- Rouge réservé aux erreurs. La couleur ne porte jamais seule une
   information : un badge ou une pastille a toujours un texte.
 - Contrastes : texte ≥ 4,5:1, bordures de champs et focus ≥ 3:1 (palette
   vérifiée). Ne pas mettre de texte gris clair ni de texte coloré sur un fond

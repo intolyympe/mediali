@@ -56,9 +56,9 @@
 }
 
 /*
- * Charte DSFR (Système de Design de l'État) appliquée aux variables de shadcn.
+ * Charte graphique (couleurs inspirées du DSFR) appliquée aux variables de shadcn.
  * Contrastes vérifiés (RGAA) : texte ≥ 4,5:1, bordures de champs et focus ≥ 3:1.
- * Voir CLAUDE.md, section « Charte DSFR ».
+ * Voir CLAUDE.md, section « Charte graphique ».
  */
 :root {
   --background: #ffffff;
@@ -78,7 +78,7 @@
   --muted-foreground: #3a3a3a;
   --accent: #f6f6f6;
   --accent-foreground: #161616;
-  /* Rouge Marianne : uniquement pour les erreurs */
+  /* Rouge : uniquement pour les erreurs */
   --destructive: #e1000f;
   --succes: #18753c;
   --avertissement: #b34000;
